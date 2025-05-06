@@ -1,1 +1,1 @@
-Gaussian processes (GPs) modelling of SMBH binary candidates light curves
+Using Gaussian processes (GPs) to model light curves of AGNs as QPO + red noise to determine whether there is a single supermassive black hole (SMBH) or a binary SMBH.
