@@ -32,7 +32,7 @@ for kernel in kernel_:
 
     # Prior
 
-    x_test = np.linspace(-5, 10, n).reshape(-1, 1)
+    x_test = np.linspace(-5, 25, n).reshape(-1, 1)
     mu_prior, sd_prior = gp.predict(x_test, return_std=True)
     samples_prior = gp.sample_y(x_test, 3)
 
