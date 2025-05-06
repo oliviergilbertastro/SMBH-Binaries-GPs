@@ -117,7 +117,7 @@ if __name__ == "__main__":
 
 
     # 5
-    cpus = 12
+    cpus = 8
     aiccs = []
     pvalues = []
     gps = []
@@ -147,7 +147,7 @@ if __name__ == "__main__":
                                 quantiles=[0.16, 0.5, 0.84], show_titles=True,
                                 title_kwargs={"fontsize": 18}, max_n_ticks=3, labelpad=0.08,
                                 levels=(1 - np.exp(-0.5), 1 - np.exp(-0.5 * 2 ** 2))) # plots 1 and 2 sigma levels
-    plt.savefig("corner.png")
+    plt.savefig("figures/tutorial/corner.png")
     plt.show()
     # 
     best_gp.gp.set_parameter_vector(gp.max_parameters)
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     plt.xlabel("Standarized Residuals")
     plt.ylabel("PDF")
     plt.legend()
-    plt.savefig("std_res.png")
+    plt.savefig("figures/tutorial/std_res.png")
     plt.show()
     # ACF
     plt.figure()
@@ -172,7 +172,7 @@ if __name__ == "__main__":
     plt.axhspan(-1.96 / np.sqrt(len(std_res)), 1.96 / np.sqrt(len(std_res)), alpha=0.3, color="black")
     plt.ylabel("ACF of Standarized Residuals")
     plt.xlabel("Lags")
-    plt.savefig("acf.png")
+    plt.savefig("figures/tutorial/acf.png")
     plt.show()
     # best-fit model
     fig = plt.figure()
@@ -183,5 +183,5 @@ if __name__ == "__main__":
     plt.fill_between(times, pred_mean - np.sqrt(pred_var), pred_mean + np.sqrt(pred_var), 
                     zorder=10, color="C1", alpha=0.5)
     plt.legend()
-    plt.savefig("model.png")
+    plt.savefig("figures/tutorial/model.png")
     plt.show()
