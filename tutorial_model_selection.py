@@ -63,8 +63,8 @@ if __name__ == "__main__":
     plt.ylabel("Rates (ct/s)")
 
     # plot PSD
-    df = 1 / input_lc.duration
-    nyquist = 1 / (2 * exposure)
+    df = 1 / input_lc.duration # minimum frequency
+    nyquist = 1 / (2 * exposure) # maximum frequency
     freqs = np.arange(df, nyquist, df)
     fig = plt.figure()
     # remember angular freqs for the PSD models
@@ -143,6 +143,8 @@ if __name__ == "__main__":
     # 6
     best_gp = gps[np.argmin(aiccs)]
     print(best_gp.max_parameters)
+    print("AICc :", AICc)
+    print("np.argmin(AICc) :",np.argmin(AICc))
     print(f"Best model {models[np.argmin(aiccs)]} has a p-value: {pvalues[np.argmin(AICc)]:.3f}")
     corner_fig = corner.corner(best_gp.mcmc_samples, labels=best_gp.gp.get_parameter_names(), 
                             title_fmt='.1f', truths=truth,
