@@ -19,6 +19,8 @@ if __name__ == "__main__":
 
     times  = np.arange(0, 1000)
     exposure = np.diff(times)[0]
+    print(times)
+    print(exposure)
 
     P_qpo = 25 # period of the QPO
     w = 2 * np.pi / P_qpo
