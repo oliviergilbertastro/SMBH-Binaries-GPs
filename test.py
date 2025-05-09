@@ -43,7 +43,8 @@ if __name__ == "__main__":
 
     labels = ["Lorentzian", "DRW"]
     # You can also use Lorentzian from models.celerite_models (which is defined in terms of variance, Q and omega)
-    kernel = Lorentzian(log_S0=log_variance_qpo, log_Q=np.log(Q), log_omega0=log_d) + RealTerm(log_a=np.log(variance_drw), log_c=np.log(w_bend))
+    #kernel = Lorentzian(log_S0=log_variance_qpo, log_Q=np.log(Q), log_omega0=log_d) + RealTerm(log_a=np.log(variance_drw), log_c=np.log(w_bend))
+    kernel = RealTerm(log_a=np.log(variance_drw), log_c=np.log(w_bend))
     truth = kernel.get_parameter_vector()
     psd_model = kernel.get_psd
 
@@ -119,10 +120,9 @@ if __name__ == "__main__":
             copy.deepcopy(lorentzian) + copy.deepcopy(realterm) + copy.deepcopy(matern)
             ,]
     
-    models = [copy.deepcopy(realterm), 
-            copy.deepcopy(lorentzian),
+    models = [copy.deepcopy(realterm),
             copy.deepcopy(lorentzian) + copy.deepcopy(realterm),
-            copy.deepcopy(lorentzian) + copy.deepcopy(realterm) + copy.deepcopy(jitterterm),
+            #copy.deepcopy(lorentzian) + copy.deepcopy(realterm) + copy.deepcopy(jitterterm),
             ]
 
     for model in models:
@@ -140,7 +140,7 @@ if __name__ == "__main__":
         print("------------------------------------------------------------------")
         gp = GPModelling(input_lc, kernel)
         # here we first minimize the likelihood and then run a small MCMC to ensure we find the maximum of the loglikelihood
-        gp.derive_posteriors(fit=True, max_steps=8000, walkers=2 * cpus, cores=cpus, progress=False)
+        gp.derive_posteriors(fit=True, max_steps=10000, walkers=2 * cpus, cores=cpus, progress=False)
         best_pars = gp.max_parameters
         gp.gp.set_parameter_vector(best_pars)
         std_res = gp.standarized_residuals(include_noise=True)
@@ -214,4 +214,4 @@ if __name__ == "__main__":
     plt.savefig("figures/test/model.png")
     print(SIGMA_NOISE)
     print(pvalues[np.argmin(aiccs)])
-    #plt.show()
+    plt.show()
