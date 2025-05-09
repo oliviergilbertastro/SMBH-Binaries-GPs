@@ -1,6 +1,6 @@
 # 1
 import numpy as np
-from celerite.terms import Matern32Term, RealTerm
+from celerite.terms import Matern32Term, RealTerm, JitterTerm
 from mind_the_gaps.models.celerite_models import Lorentzian
 from mind_the_gaps.simulator import Simulator
 from mind_the_gaps.lightcurves import GappyLightcurve
@@ -18,7 +18,11 @@ if __name__ == "__main__":
 
     # 2
     times  = np.arange(0, 1000)
-    exposure = np.diff(times)[0]
+    times = np.random.choice(np.arange(0, 30000), size=1000, replace=False)
+    times = list(times)
+    times.sort()
+    times = np.array(times)
+    exposure = 1#np.diff(times)[0]
 
     P_qpo = 25 # period of the QPO
     w = 2 * np.pi / P_qpo
@@ -43,10 +47,10 @@ if __name__ == "__main__":
     truth = kernel.get_parameter_vector()
     psd_model = kernel.get_psd
 
-    SIGMA_NOISE = 3.5
+    SIGMA_NOISE = 10
     # create simulator object with Gaussian noise
     simulator = Simulator(psd_model, times, np.ones(len(times)) * exposure, mean, pdf="Gaussian", 
-                        sigma_noise=SIGMA_NOISE, extension_factor = 2)
+                        sigma_noise=SIGMA_NOISE, extension_factor = 100)
 
     # simulate noiseless count rates from the PSD, make the initial lightcurve 2 times as long as the original times
     countrates = simulator.generate_lightcurve()
@@ -56,7 +60,7 @@ if __name__ == "__main__":
 
     fig = plt.figure()
     plt.errorbar(times, noisy_countrates, yerr=dy, ls="None", marker=".")
-    plt.xlabel("Time (days)")
+    plt.xlabel("Time (seconds)")
     plt.ylabel("Rates (ct/s)")
 
     # plot PSD
@@ -76,7 +80,7 @@ if __name__ == "__main__":
     for i, term in enumerate(kernel.terms):
         plt.plot(freqs, term.get_psd(2 * np.pi * freqs), label=labels[i])
     plt.legend()
-
+    plt.show()
     lc_variance = np.var(input_lc.y)
 
 
@@ -101,6 +105,7 @@ if __name__ == "__main__":
     Q_bounds = (np.log(1.5), np.log(1000))
 
     log_var = np.log(lc_variance)
+    jitterterm = JitterTerm(log_var, bounds=[variance_bounds])
     realterm = RealTerm(log_var, np.log(2 * np.pi / 50), bounds=[variance_bounds, bend_bounds])
     lorentzian = Lorentzian(log_var, np.log(100), np.log(2 * np.pi/10), 
                         bounds=[variance_bounds, Q_bounds, bend_bounds])
@@ -117,6 +122,7 @@ if __name__ == "__main__":
     models = [copy.deepcopy(realterm), 
             copy.deepcopy(lorentzian),
             copy.deepcopy(lorentzian) + copy.deepcopy(realterm),
+            copy.deepcopy(lorentzian) + copy.deepcopy(realterm) + copy.deepcopy(jitterterm),
             ]
 
     for model in models:
@@ -125,7 +131,7 @@ if __name__ == "__main__":
 
 
     # 5
-    cpus = 12
+    cpus = 10
     aiccs = []
     pvalues = []
     gps = []
@@ -137,7 +143,7 @@ if __name__ == "__main__":
         gp.derive_posteriors(fit=True, max_steps=8000, walkers=2 * cpus, cores=cpus, progress=False)
         best_pars = gp.max_parameters
         gp.gp.set_parameter_vector(best_pars)
-        std_res = gp.standarized_residuals()
+        std_res = gp.standarized_residuals(include_noise=True)
         pvalue = ks_1samp(std_res, norm.cdf).pvalue
         AICc = aicc(gp.max_loglikelihood, k=gp.k, n=input_lc.n)
         print(f"p-value:{pvalue:.3f} | AICC: {AICc:.2f}")
@@ -198,7 +204,7 @@ if __name__ == "__main__":
     # best-fit model
     fig = plt.figure()
     plt.errorbar(times, noisy_countrates, yerr=dy, ls="None", marker=".", color="black")
-    plt.xlabel("Time (days)")
+    plt.xlabel("Time (seconds)")
     plt.ylabel("Rates (ct/s)")
     plt.plot(times, pred_mean, label="Model", color="C1")
     plt.fill_between(times, pred_mean - np.sqrt(pred_var), pred_mean + np.sqrt(pred_var), 
