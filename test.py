@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     # 2
     times  = np.arange(0, 1000)
-    times = np.random.choice(np.arange(0, 30000), size=1000, replace=False)
+    times = np.random.choice(np.arange(0, 10000), size=500, replace=False)
     times = list(times)
     times.sort()
     times = np.array(times)
