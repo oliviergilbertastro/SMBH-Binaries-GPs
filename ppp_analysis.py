@@ -4,35 +4,162 @@ Code to calculate the posterior predictive p-value (PPP), which calculates the l
 
 from mind_the_gaps.lightcurves import GappyLightcurve
 from mind_the_gaps.gpmodelling import GPModelling
-from mind_the_gaps.models.psd_models import BendingPowerlaw, Lorentzian, SHO, Matern32, Jitter
+from celerite.terms import Matern32Term, RealTerm, JitterTerm
 from mind_the_gaps.models.celerite_models import Lorentzian as Lor
+from mind_the_gaps.models.psd_models import BendingPowerlaw, Lorentzian, SHO, Matern32, Jitter
 from mind_the_gaps.models.celerite_models import DampedRandomWalk
 from mind_the_gaps.simulator import Simulator
 import numpy as np
 import matplotlib.pyplot as plt
 import celerite, corner
 from scipy.stats import percentileofscore
+from utils import print_color
 
 cpus = 10 # set the number of cores for parallelization
 np.random.seed(10)
 
-drw_data = np.loadtxt("simulations/DRW.txt")
-drw_qpo_data = np.loadtxt("simulations/DRW_QPO.txt")
 
-times, noisy_countrates, dy, exposures = drw_data[:,0], drw_data[:,1], drw_data[:,2], drw_data[:,3]
-input_drw_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposures)
+def plot_lightcurve(input_lc):
+    fig = plt.figure()
+    plt.errorbar(input_lc._times, input_lc._y, yerr=input_lc._dy, ls="None", marker=".")
+    plt.xlabel("Time (days)")
+    plt.ylabel("Rates (ct/s)")
 
-fig = plt.figure()
-plt.errorbar(times, noisy_countrates, yerr=dy, ls="None", marker=".")
-plt.xlabel("Time (days)")
-plt.ylabel("Rates (ct/s)")
 
-times, noisy_countrates, dy, exposures = drw_qpo_data[:,0], drw_qpo_data[:,1], drw_qpo_data[:,2], drw_qpo_data[:,3]
-input_drw_qpo_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposures)
 
-fig = plt.figure()
-plt.errorbar(times, noisy_countrates, yerr=dy, ls="None", marker=".")
-plt.xlabel("Time (days)")
-plt.ylabel("Rates (ct/s)")
+# Define the null-hypothesis
+def define_null_hypothesis(input_lc):
+    bounds_drw = dict(log_a=(-10, 50), log_c=(-10, 10))
+    null_kernel = celerite.terms.RealTerm(log_a=np.log(100), log_c=np.log(2*np.pi/30), bounds=bounds_drw)
+    null_model = GPModelling(input_lc, null_kernel)
+    print("Deriving posteriors for null model")
+    null_model.derive_posteriors(max_steps=50000, fit=True, cores=cpus)
 
-plt.show()
+    corner_fig = corner.corner(null_model.mcmc_samples, labels=null_model.gp.get_parameter_names(), title_fmt='.1f',
+                                quantiles=[0.16, 0.5, 0.84], show_titles=True,
+                                title_kwargs={"fontsize": 18}, max_n_ticks=3, labelpad=0.08,
+                                levels=(1 - np.exp(-0.5), 1 - np.exp(-0.5 * 2 ** 2))) # plots 1 and 2 sigma levels
+
+    autocorr = null_model.autocorr
+    fig = plt.figure()
+    n = np.arange(1, len(autocorr) + 1)
+    plt.plot(n, autocorr, "-o")
+    plt.ylabel("Mean $\\tau$")
+    plt.xlabel("Number of steps")
+    plt.savefig("figures/test/null_autocorr.png", dpi=100)
+    return null_model, null_kernel
+
+def define_alternative_model(input_lc, model="Lorentzian"):
+    bounds_drw = dict(log_a=(-10, 50), log_c=(-10, 10))
+    P = 10 # period of the QPO
+    w = 2 * np.pi / P
+    # Define starting parameters
+    log_variance_qpo = np.log(100)
+    Q = 80 # coherence
+    log_c = np.log(0.5 * w/Q)
+    log_d = np.log(w)
+    print(f"log variance of the QPO: {log_variance_qpo:.2f}, log_c: {log_c:.2f}, log omega: {log_d:.2f}")
+
+    lc_variance = np.var(input_lc.y)
+    bounds_qpo_complex = dict(log_a=(-10, 50), log_c=(-10, 10), log_d=(-5, 5))
+
+    def bounds_variance(variance, margin=15):
+        return np.log(variance/margin), np.log(variance * margin)
+
+    def bounds_bend(duration, dt):
+        nyquist = 1 / (2 * dt)
+        return np.log(2 * np.pi/duration), np.log(nyquist * 2 * np.pi)
+    variance_bounds = bounds_variance(lc_variance)
+    bend_bounds = bounds_bend(input_lc.duration, input_lc._exposures[0])
+    Q_bounds = (np.log(1.5), np.log(1000))
+    bounds_qpo = dict(log_S0=variance_bounds, log_Q=Q_bounds, log_omega0=bend_bounds)
+    # You can also use Lorentzian from models.celerite_models (which is defined in terms of variance, Q and omega)
+    if model == "Lorentzian":
+        alternative_kernel = Lor(np.log(100), np.log(100), np.log(2 * np.pi/10), bounds=bounds_qpo) + celerite.terms.RealTerm(log_a=np.log(100), log_c=np.log(2*np.pi/30), bounds=bounds_drw)
+    else:
+        alternative_kernel = celerite.terms.ComplexTerm(log_a=log_variance_qpo, log_c=log_c, log_d=log_d, bounds=bounds_qpo_complex) + celerite.terms.RealTerm(log_a=np.log(100), log_c=np.log(2*np.pi/30), bounds=bounds_drw)
+    alternative_model = GPModelling(input_lc, alternative_kernel)
+    print("Deriving posteriors for alternative model")
+    alternative_model.derive_posteriors(max_steps=50000, fit=True, cores=cpus)
+
+    autocorr = alternative_model.autocorr
+    fig = plt.figure()
+    n = np.arange(1, len(autocorr) + 1)
+    plt.plot(n, autocorr, "-o")
+    plt.ylabel("Mean $\\tau$")
+    plt.xlabel("Number of steps")
+    plt.savefig("figures/test/alt_autocorr.png", dpi=100)
+
+    corner_fig = corner.corner(alternative_model.mcmc_samples, labels=alternative_model.gp.get_parameter_names(), 
+                            title_fmt='.1f',
+                                quantiles=[0.16, 0.5, 0.84], show_titles=True,
+                                title_kwargs={"fontsize": 18}, max_n_ticks=3, labelpad=0.08,
+                            levels=(1 - np.exp(-0.5), 1 - np.exp(-0.5 * 2 ** 2))) # plots 1 and 2 sigma levels
+    return alternative_model, alternative_kernel
+
+def generate_lightcurves(null_model, Nsims=100):
+    Nsims = 100 # typically 10,000
+    lcs = null_model.generate_from_posteriors(Nsims, cpus=cpus)
+    print_color(f"Done generating {Nsims} lightcurves!")
+    return lcs
+
+def fit_lightcurves(lcs, null_kernel, alternative_kernel):
+    likelihoods_null = []
+    likelihoods_alt = []
+
+    for i, lc in enumerate(lcs):
+        print("Processing lightcurve %d/%d" % (i + 1, len(lcs)), end="\r")
+        
+        # Run a small MCMC to make sure we find the global maximum of the likelihood
+        # ideally we'd probably want to run more samples
+        null_modelling = GPModelling(lc, null_kernel)
+        null_modelling.derive_posteriors(fit=True, cores=cpus, walkers=2 * cpus, max_steps=1000, progress=False)
+        likelihoods_null.append(null_modelling.max_loglikelihood)
+        alternative_modelling = GPModelling(lc, alternative_kernel)                         
+        alternative_modelling.derive_posteriors(fit=True, cores=cpus, walkers=2 * cpus, max_steps=1000, 
+                                                progress=False)
+        likelihoods_alt.append(alternative_modelling.max_loglikelihood)
+    print_color(f"Done fitting lightcurves!")
+    return likelihoods_null, likelihoods_alt
+
+def T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model):
+    plt.figure()
+    T_dist = -2 * (np.array(likelihoods_null) - np.array(likelihoods_alt))
+    print(T_dist)
+    plt.hist(T_dist, bins=10)
+    T_obs = -2 * (null_model.max_loglikelihood - alternative_model.max_loglikelihood)
+    print("Observed LRT_stat: %.3f" % T_obs)
+    perc = percentileofscore(T_dist, T_obs)
+    print("p-value: %.4f" % (1 - perc / 100))
+    plt.axvline(T_obs, label="%.2f%%" % perc, ls="--", color="black")
+
+    sigmas = [95, 99.7]
+    colors= ["red", "green"]
+    for i, sigma in enumerate(sigmas):
+        plt.axvline(np.percentile(T_dist, sigma), ls="--", color=colors[i])
+    plt.legend()
+    #plt.axvline(np.percentile(T_dist, 99.97), color="green")
+    plt.xlabel("$T_\\mathrm{LRT}$")
+
+    plt.savefig("figures/test/LRT_statistic.png", dpi=100)
+
+
+if __name__ == "__main__":
+    drw_data = np.loadtxt("simulations/DRW.txt")
+    drw_qpo_data = np.loadtxt("simulations/DRW_QPO.txt")
+
+    times, noisy_countrates, dy, exposures = drw_data[:,0], drw_data[:,1], drw_data[:,2], drw_data[:,3]
+    input_drw_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposures)
+    times, noisy_countrates, dy, exposures = drw_qpo_data[:,0], drw_qpo_data[:,1], drw_qpo_data[:,2], drw_qpo_data[:,3]
+    input_drw_qpo_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposures)
+
+    plot_lightcurve(input_drw_lc)
+    plt.show()
+    null_model, null_kernel = define_null_hypothesis(input_drw_lc)
+    plt.show()
+    alternative_model, alternative_kernel = define_alternative_model(input_drw_lc, model="Complex")
+    plt.show()
+    lcs = generate_lightcurves(null_model, Nsims=100)
+    likelihoods_null, likelihoods_alt = fit_lightcurves(lcs, null_kernel, alternative_kernel)
+    T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model)
+    plt.show()
