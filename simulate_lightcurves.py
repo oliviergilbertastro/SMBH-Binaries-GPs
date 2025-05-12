@@ -57,7 +57,6 @@ if __name__ == "__main__":
     countrates = simulator.generate_lightcurve()
     # add (Poisson) noise
     noisy_countrates, dy = simulator.add_noise(countrates)
-    input_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposure)
 
     drw_array = np.array([times, noisy_countrates, dy, np.ones(len(times)) * exposure]).T
     np.savetxt("simulations/DRW.txt", drw_array)
@@ -77,7 +76,6 @@ if __name__ == "__main__":
     countrates = simulator.generate_lightcurve()
     # add (Poisson) noise
     noisy_countrates, dy = simulator.add_noise(countrates)
-    input_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposure)
 
     drw_qpo_array = np.array([times, noisy_countrates, dy, np.ones(len(times)) * exposure]).T
     np.savetxt("simulations/DRW_QPO.txt", drw_qpo_array)
