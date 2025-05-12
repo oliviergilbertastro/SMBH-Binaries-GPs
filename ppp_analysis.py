@@ -148,6 +148,19 @@ def complete_PPP_analysis(input_lc, save_data=True):
     """
     Make the full analysis of LRT distributions and save the important data under "saves/ppp/DD_MM_YYYY_TIME" 
     """
+    if save_data:
+        import pickle
+        from datetime import datetime
+        import os
+        savefolder = "saves/ppp/" + datetime.now().strftime('%Y_%m_%d_%Hh%Mm%Ss') + "/"
+        print(savefolder)
+        if not os.path.exists(savefolder):
+            os.makedirs(savefolder)
+        else:
+            raise ValueError("Folder already created at this time.")
+        with open(f'{savefolder}input_lc.pkl', 'wb') as f:
+            pickle.dump(input_lc, f)
+
     plot_lightcurve(input_lc)
     plt.show()
     null_model, null_kernel = define_null_hypothesis(input_lc)
@@ -167,6 +180,8 @@ if __name__ == "__main__":
     input_drw_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposures)
     times, noisy_countrates, dy, exposures = drw_qpo_data[:,0], drw_qpo_data[:,1], drw_qpo_data[:,2], drw_qpo_data[:,3]
     input_drw_qpo_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposures)
+
+    complete_PPP_analysis(input_drw_lc)
 
     plot_lightcurve(input_drw_lc)
     plt.show()
