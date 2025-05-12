@@ -149,7 +149,7 @@ def T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model,
     return (1 - perc / 100), T_dist, T_obs
 
 
-def complete_PPP_analysis(input_lc, save_data=True, infos=None):
+def complete_PPP_analysis(input_lc, save_data=True, infos=None, if_plot=True):
     """
     Make the full analysis of LRT distributions and save the important data under "saves/ppp/DD_MM_YYYY_TIME"
     input_lc : GappyLightCurve object of our data (or simulated data)
@@ -176,11 +176,14 @@ def complete_PPP_analysis(input_lc, save_data=True, infos=None):
                 f.write(infos)
 
     plot_lightcurve(input_lc)
-    plt.show()
+    if if_plot:
+        plt.show()
     null_model, null_kernel = define_null_hypothesis(input_lc, savefolder=savefolder)
-    plt.show()
+    if if_plot:
+        plt.show()
     alternative_model, alternative_kernel = define_alternative_model(input_lc, model="Lorentzian", savefolder=savefolder)
-    plt.show()
+    if if_plot:
+        plt.show()
     lcs = generate_lightcurves(null_model, Nsims=100)
     likelihoods_null, likelihoods_alt = fit_lightcurves(lcs, null_kernel, alternative_kernel)
     if save_data:
@@ -193,15 +196,20 @@ def complete_PPP_analysis(input_lc, save_data=True, infos=None):
         with open(f"{savefolder}info.txt", "a") as f:
                 f.write(f"\np-value = {pval}")
                 f.write(f"\nObserved T_LRT = {T_obs}")
-    plt.show()
+    if if_plot:
+        plt.show()
 
 if __name__ == "__main__":
-    drw_data = np.loadtxt("simulations/DRW.txt")
-    drw_qpo_data = np.loadtxt("simulations/DRW_QPO.txt")
-
+    drw_data = np.loadtxt("simulations/DRW.txt", skiprows=1)
+    with open('simulations/DRW.txt') as f:
+        header_drw = f.readline()
+    drw_qpo_data = np.loadtxt("simulations/DRW_QPO.txt", skiprows=1)
+    with open('simulations/DRW_QPO.txt') as f:
+        header_drw_qpo = f.readline()
     times, noisy_countrates, dy, exposures = drw_data[:,0], drw_data[:,1], drw_data[:,2], drw_data[:,3]
     input_drw_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposures)
     times, noisy_countrates, dy, exposures = drw_qpo_data[:,0], drw_qpo_data[:,1], drw_qpo_data[:,2], drw_qpo_data[:,3]
     input_drw_qpo_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposures)
 
-    complete_PPP_analysis(input_drw_qpo_lc, save_data=True, infos="Red noise + QPO, simulated")
+    complete_PPP_analysis(input_drw_lc, save_data=True, infos=f"Red noise only, simulated\n{header_drw}", if_plot=False)
+    complete_PPP_analysis(input_drw_qpo_lc, save_data=True, infos=f"Red noise + QPO, simulated\n{header_drw_qpo}", if_plot=False)

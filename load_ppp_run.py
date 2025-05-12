@@ -2,6 +2,7 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 from ppp_analysis import *
+from fit_lognormal_TLRT import plot_lognormal
 
 def load_lightcurve(filetime):
     """returns GappyLightCurve"""
@@ -28,5 +29,5 @@ if __name__ == "__main__":
     #alt_model, _ = define_alternative_model(lc)
     #T_LRT_dist(null_likelihoods, alt_likelihoods, null_model, alt_model)
     T_dist, T_obs = load_T_LRT(filetime)
-    print(T_obs)
-    print(T_dist)
+    plot_lognormal(T_dist, T_obs)
+    plt.show()
