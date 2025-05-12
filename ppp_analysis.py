@@ -28,7 +28,7 @@ def plot_lightcurve(input_lc):
 
 
 # Define the null-hypothesis
-def define_null_hypothesis(input_lc):
+def define_null_hypothesis(input_lc, savefolder=None):
     bounds_drw = dict(log_a=(-10, 50), log_c=(-10, 10))
     null_kernel = celerite.terms.RealTerm(log_a=np.log(100), log_c=np.log(2*np.pi/30), bounds=bounds_drw)
     null_model = GPModelling(input_lc, null_kernel)
@@ -46,10 +46,11 @@ def define_null_hypothesis(input_lc):
     plt.plot(n, autocorr, "-o")
     plt.ylabel("Mean $\\tau$")
     plt.xlabel("Number of steps")
-    plt.savefig("figures/test/null_autocorr.png", dpi=100)
+    if savefolder is not None:
+        plt.savefig(f"{savefolder}null_autocorr.png", dpi=100)
     return null_model, null_kernel
 
-def define_alternative_model(input_lc, model="Lorentzian"):
+def define_alternative_model(input_lc, model="Lorentzian", savefolder=None):
     bounds_drw = dict(log_a=(-10, 50), log_c=(-10, 10))
     P = 10 # period of the QPO
     w = 2 * np.pi / P
@@ -88,7 +89,8 @@ def define_alternative_model(input_lc, model="Lorentzian"):
     plt.plot(n, autocorr, "-o")
     plt.ylabel("Mean $\\tau$")
     plt.xlabel("Number of steps")
-    plt.savefig("figures/test/alt_autocorr.png", dpi=100)
+    if savefolder is not None:
+        plt.savefig(f"{savefolder}alt_autocorr.png", dpi=100)
 
     corner_fig = corner.corner(alternative_model.mcmc_samples, labels=alternative_model.gp.get_parameter_names(), 
                             title_fmt='.1f',
@@ -122,7 +124,7 @@ def fit_lightcurves(lcs, null_kernel, alternative_kernel):
     print_color(f"Done fitting lightcurves!")
     return likelihoods_null, likelihoods_alt
 
-def T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model):
+def T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model, savefolder=None):
     plt.figure()
     T_dist = -2 * (np.array(likelihoods_null) - np.array(likelihoods_alt))
     print(T_dist)
@@ -141,13 +143,22 @@ def T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model)
     #plt.axvline(np.percentile(T_dist, 99.97), color="green")
     plt.xlabel("$T_\\mathrm{LRT}$")
 
-    plt.savefig("figures/test/LRT_statistic.png", dpi=100)
+    if savefolder is not None:
+        plt.savefig(f"{savefolder}LRT_statistic.png", dpi=100)
+
+    return (1 - perc / 100)
 
 
-def complete_PPP_analysis(input_lc, save_data=True):
+def complete_PPP_analysis(input_lc, save_data=True, infos=None):
     """
-    Make the full analysis of LRT distributions and save the important data under "saves/ppp/DD_MM_YYYY_TIME" 
+    Make the full analysis of LRT distributions and save the important data under "saves/ppp/DD_MM_YYYY_TIME"
+    input_lc : GappyLightCurve object of our data (or simulated data)
+    save_data : bool, True if we want to save
+    infos : string to add infos as a text file in the text folder
     """
+    if infos is not None and not save_data:
+        raise ValueError("There are infos to be saved, but save_data=False")
+    savefolder = None
     if save_data:
         import pickle
         from datetime import datetime
@@ -160,16 +171,24 @@ def complete_PPP_analysis(input_lc, save_data=True):
             raise ValueError("Folder already created at this time.")
         with open(f'{savefolder}input_lc.pkl', 'wb') as f:
             pickle.dump(input_lc, f)
+        if infos is not None:
+            with open(f"{savefolder}info.txt", "a") as f:
+                f.write(infos)
 
     plot_lightcurve(input_lc)
     plt.show()
-    null_model, null_kernel = define_null_hypothesis(input_lc)
+    null_model, null_kernel = define_null_hypothesis(input_lc, savefolder=savefolder)
     plt.show()
-    alternative_model, alternative_kernel = define_alternative_model(input_lc, model="Complex")
+    alternative_model, alternative_kernel = define_alternative_model(input_lc, model="Complex", savefolder=savefolder)
     plt.show()
     lcs = generate_lightcurves(null_model, Nsims=100)
     likelihoods_null, likelihoods_alt = fit_lightcurves(lcs, null_kernel, alternative_kernel)
-    T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model)
+    if save_data:
+        np.savetxt(f"{savefolder}likelihoods.txt", np.array([likelihoods_null, likelihoods_alt]).T)
+    pval = T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model, savefolder=savefolder)
+    if save_data:
+        with open(f"{savefolder}info.txt", "a") as f:
+                f.write(f"\np-value = {pval}")
     plt.show()
 
 if __name__ == "__main__":
@@ -181,7 +200,7 @@ if __name__ == "__main__":
     times, noisy_countrates, dy, exposures = drw_qpo_data[:,0], drw_qpo_data[:,1], drw_qpo_data[:,2], drw_qpo_data[:,3]
     input_drw_qpo_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposures)
 
-    complete_PPP_analysis(input_drw_lc)
+    complete_PPP_analysis(input_drw_lc, save_data=True, infos="Red noise only, simulated")
 
     plot_lightcurve(input_drw_lc)
     plt.show()
