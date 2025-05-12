@@ -1,2 +1,3 @@
 Red noise + QPO, simulated
 p-value = 0.0
+Observed LRT_stat: 95.095

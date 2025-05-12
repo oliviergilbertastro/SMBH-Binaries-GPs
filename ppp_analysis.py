@@ -145,9 +145,8 @@ def T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model,
 
     if savefolder is not None:
         plt.savefig(f"{savefolder}LRT_statistic.png", dpi=100)
-        np.savetxt(f"{savefolder}T_dist.txt", T_dist)
 
-    return (1 - perc / 100)
+    return (1 - perc / 100), T_dist, T_obs
 
 
 def complete_PPP_analysis(input_lc, save_data=True, infos=None):
@@ -180,16 +179,20 @@ def complete_PPP_analysis(input_lc, save_data=True, infos=None):
     plt.show()
     null_model, null_kernel = define_null_hypothesis(input_lc, savefolder=savefolder)
     plt.show()
-    alternative_model, alternative_kernel = define_alternative_model(input_lc, model="Complex", savefolder=savefolder)
+    alternative_model, alternative_kernel = define_alternative_model(input_lc, model="Lorentzian", savefolder=savefolder)
     plt.show()
     lcs = generate_lightcurves(null_model, Nsims=100)
     likelihoods_null, likelihoods_alt = fit_lightcurves(lcs, null_kernel, alternative_kernel)
     if save_data:
         np.savetxt(f"{savefolder}likelihoods.txt", np.array([likelihoods_null, likelihoods_alt]).T)
-    pval = T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model, savefolder=savefolder)
+    pval, T_dist, T_obs = T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model, savefolder=savefolder)
     if save_data:
+        tlrt = list(T_dist)
+        tlrt.append(T_obs)
+        np.savetxt(f"{savefolder}T_LRT.txt", np.array(tlrt))
         with open(f"{savefolder}info.txt", "a") as f:
                 f.write(f"\np-value = {pval}")
+                f.write(f"\nObserved T_LRT = {T_obs}")
     plt.show()
 
 if __name__ == "__main__":
