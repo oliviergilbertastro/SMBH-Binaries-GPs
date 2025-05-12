@@ -1,0 +1,2 @@
+Red noise + QPO, simulated
+p-value = 0.0

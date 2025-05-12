@@ -504,3 +504,7 @@ def P_qpo_from_logw0(logw0, logw0_std=None):
 if __name__ == "__main__":
     print(P_qpo_from_logw0(-1.38,[0.01,0.01]))
     # This recovers the period P_qpo = 25 that was given to simulate the lightcurve.
+
+    # Print the period bounds from the fitting (log_d=[-5,5])
+    print(P_qpo_from_logw0(-5))
+    print(P_qpo_from_logw0(5))

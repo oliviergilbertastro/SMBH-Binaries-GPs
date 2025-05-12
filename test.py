@@ -1,6 +1,6 @@
 # 1
 import numpy as np
-from celerite.terms import Matern32Term, RealTerm, JitterTerm
+from celerite.terms import Matern32Term, RealTerm, JitterTerm, ComplexTerm
 from mind_the_gaps.models.celerite_models import Lorentzian
 from mind_the_gaps.simulator import Simulator
 from mind_the_gaps.lightcurves import GappyLightcurve
@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     # 2
     times  = np.arange(0, 1000)
-    times = np.random.choice(np.arange(0, 10000), size=500, replace=False)
+    times = np.random.choice(np.arange(0, 3000), size=3000, replace=False)
     times = list(times)
     times.sort()
     times = np.array(times)
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     mean = 100
     rms = 0.1
     variance_drw = (mean * rms) ** 2  # variance of the DRW (bending powerlaw)
-    P_drw = 40
+    P_drw = 300
     w_bend = 2 * np.pi / P_drw # angular frequency of the DRW or Bending Powerlaw
     # Define starting parameters
     log_variance_qpo = np.log(variance_drw)
@@ -43,12 +43,12 @@ if __name__ == "__main__":
 
     labels = ["Lorentzian", "DRW"]
     # You can also use Lorentzian from models.celerite_models (which is defined in terms of variance, Q and omega)
-    #kernel = Lorentzian(log_S0=log_variance_qpo, log_Q=np.log(Q), log_omega0=log_d) + RealTerm(log_a=np.log(variance_drw), log_c=np.log(w_bend))
-    kernel = RealTerm(log_a=np.log(variance_drw), log_c=np.log(w_bend))
+    kernel = Lorentzian(log_S0=log_variance_qpo, log_Q=np.log(Q), log_omega0=log_d) + RealTerm(log_a=np.log(variance_drw), log_c=np.log(w_bend))
+    #kernel = RealTerm(log_a=np.log(variance_drw), log_c=np.log(w_bend))
     truth = kernel.get_parameter_vector()
     psd_model = kernel.get_psd
 
-    SIGMA_NOISE = 10
+    SIGMA_NOISE = 1
     # create simulator object with Gaussian noise
     simulator = Simulator(psd_model, times, np.ones(len(times)) * exposure, mean, pdf="Gaussian", 
                         sigma_noise=SIGMA_NOISE, extension_factor = 100)
@@ -112,6 +112,13 @@ if __name__ == "__main__":
                         bounds=[variance_bounds, Q_bounds, bend_bounds])
     matern = Matern32Term(np.log(np.sqrt(lc_variance)), np.log(10), bounds=[sigma_bounds, timescale_bounds], 
                         eps=1e-8)
+    
+    log_c = np.log(0.5 * w/Q)
+    log_d = np.log(w)
+    bounds_drw = dict(log_a=(-10, 50), log_c=(-10, 10))
+    bounds_qpo_complex = dict(log_a=(-10, 50), log_c=(-10, 10), log_d=(-5, 5))
+    alternative_kernel = ComplexTerm(log_a=log_var, log_c=log_c, log_d=log_d, bounds=bounds_qpo_complex) + RealTerm(log_a=log_var, log_c=np.log(2*np.pi/50), bounds=bounds_drw)
+
     import copy
 
     models = [copy.deepcopy(realterm), 
@@ -122,7 +129,7 @@ if __name__ == "__main__":
     
     models = [copy.deepcopy(realterm),
             copy.deepcopy(lorentzian) + copy.deepcopy(realterm),
-            #copy.deepcopy(lorentzian) + copy.deepcopy(realterm) + copy.deepcopy(jitterterm),
+            alternative_kernel,
             ]
 
     for model in models:

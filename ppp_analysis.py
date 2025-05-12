@@ -59,7 +59,7 @@ def define_alternative_model(input_lc, model="Lorentzian", savefolder=None):
     Q = 80 # coherence
     log_c = np.log(0.5 * w/Q)
     log_d = np.log(w)
-    print(f"log variance of the QPO: {log_variance_qpo:.2f}, log_c: {log_c:.2f}, log omega: {log_d:.2f}")
+    print(f"log variance starting values of the QPO: {log_variance_qpo:.2f}, log_c: {log_c:.2f}, log omega: {log_d:.2f}")
 
     lc_variance = np.var(input_lc.y)
     bounds_qpo_complex = dict(log_a=(-10, 50), log_c=(-10, 10), log_d=(-5, 5))
@@ -145,6 +145,7 @@ def T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model,
 
     if savefolder is not None:
         plt.savefig(f"{savefolder}LRT_statistic.png", dpi=100)
+        np.savetxt(f"{savefolder}T_dist.txt", T_dist)
 
     return (1 - perc / 100)
 
@@ -154,7 +155,7 @@ def complete_PPP_analysis(input_lc, save_data=True, infos=None):
     Make the full analysis of LRT distributions and save the important data under "saves/ppp/DD_MM_YYYY_TIME"
     input_lc : GappyLightCurve object of our data (or simulated data)
     save_data : bool, True if we want to save
-    infos : string to add infos as a text file in the text folder
+    infos : string to add infos as a text file in the save folder
     """
     if infos is not None and not save_data:
         raise ValueError("There are infos to be saved, but save_data=False")
@@ -200,15 +201,4 @@ if __name__ == "__main__":
     times, noisy_countrates, dy, exposures = drw_qpo_data[:,0], drw_qpo_data[:,1], drw_qpo_data[:,2], drw_qpo_data[:,3]
     input_drw_qpo_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposures)
 
-    complete_PPP_analysis(input_drw_lc, save_data=True, infos="Red noise only, simulated")
-
-    plot_lightcurve(input_drw_lc)
-    plt.show()
-    null_model, null_kernel = define_null_hypothesis(input_drw_lc)
-    plt.show()
-    alternative_model, alternative_kernel = define_alternative_model(input_drw_lc, model="Complex")
-    plt.show()
-    lcs = generate_lightcurves(null_model, Nsims=100)
-    likelihoods_null, likelihoods_alt = fit_lightcurves(lcs, null_kernel, alternative_kernel)
-    T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model)
-    plt.show()
+    complete_PPP_analysis(input_drw_qpo_lc, save_data=True, infos="Red noise + QPO, simulated")
