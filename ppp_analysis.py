@@ -144,6 +144,21 @@ def T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model)
     plt.savefig("figures/test/LRT_statistic.png", dpi=100)
 
 
+def complete_PPP_analysis(input_lc, save_data=True):
+    """
+    Make the full analysis of LRT distributions and save the important data under "saves/ppp/DD_MM_YYYY_TIME" 
+    """
+    plot_lightcurve(input_lc)
+    plt.show()
+    null_model, null_kernel = define_null_hypothesis(input_lc)
+    plt.show()
+    alternative_model, alternative_kernel = define_alternative_model(input_lc, model="Complex")
+    plt.show()
+    lcs = generate_lightcurves(null_model, Nsims=100)
+    likelihoods_null, likelihoods_alt = fit_lightcurves(lcs, null_kernel, alternative_kernel)
+    T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model)
+    plt.show()
+
 if __name__ == "__main__":
     drw_data = np.loadtxt("simulations/DRW.txt")
     drw_qpo_data = np.loadtxt("simulations/DRW_QPO.txt")
