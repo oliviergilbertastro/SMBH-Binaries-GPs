@@ -15,7 +15,8 @@ plt.rcParams['figure.figsize'] = [16, 8]
 
 np.random.seed(10)
 
-def simulate_lc(P_qpo=25,mean=100,P_drw=100,Q=50, sigma_noise=1, timerange=3000, length=500):
+def simulate_lc(P_qpo=25,mean=100,P_drw=100,Q=50, sigma_noise=1, timerange=3000, length=500, time_sigma=0.2):
+    header=f"P_qpo={P_qpo},mean={mean},P_drw={P_drw},Q={Q}, sigma_noise={sigma_noise}, timerange={timerange}, length={length}, time_sigma={time_sigma}"
     # 2
 
     # First method : regularly sampled
@@ -30,7 +31,7 @@ def simulate_lc(P_qpo=25,mean=100,P_drw=100,Q=50, sigma_noise=1, timerange=3000,
     # Third method : irregularly sampled in a gaussian way
     times = [0]
     for i in range(length):
-        delta_time = np.abs(gauss(timerange/length, 0.2))
+        delta_time = np.abs(gauss(timerange/length, time_sigma))
         times.append(times[-1]+delta_time)
 
     exposure = 1#np.diff(times)[0]
@@ -70,7 +71,7 @@ def simulate_lc(P_qpo=25,mean=100,P_drw=100,Q=50, sigma_noise=1, timerange=3000,
     noisy_countrates, dy = simulator.add_noise(countrates)
 
     drw_array = np.array([times, noisy_countrates, dy, np.ones(len(times)) * exposure]).T
-    np.savetxt("simulations/DRW.txt", drw_array, header=f"P_qpo={P_qpo},mean={mean},P_drw={P_drw},Q={Q}, sigma_noise={sigma_noise}, timerange={timerange}, length={length}")
+    np.savetxt("simulations/DRW.txt", drw_array, header=header)
 
 
 
@@ -89,6 +90,6 @@ def simulate_lc(P_qpo=25,mean=100,P_drw=100,Q=50, sigma_noise=1, timerange=3000,
     noisy_countrates, dy = simulator.add_noise(countrates)
 
     drw_qpo_array = np.array([times, noisy_countrates, dy, np.ones(len(times)) * exposure]).T
-    np.savetxt("simulations/DRW_QPO.txt", drw_qpo_array, header=f"P_qpo={P_qpo},mean={mean},P_drw={P_drw},Q={Q}, sigma_noise={sigma_noise}, timerange={timerange}, length={length}")
+    np.savetxt("simulations/DRW_QPO.txt", drw_qpo_array, header=header)
 
-simulate_lc(P_qpo=100,mean=100,P_drw=100,Q=80, sigma_noise=1, timerange=1000, length=200)
+simulate_lc(P_qpo=100,mean=100,P_drw=100,Q=80, sigma_noise=1, timerange=1000, length=200, time_sigma=0.7)
