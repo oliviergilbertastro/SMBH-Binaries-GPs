@@ -66,7 +66,7 @@ def simulate_lc(P_qpo=25,mean=100,P_drw=100,Q=50, sigma_noise=1):
     truth = kernel.get_parameter_vector()
     psd_model = kernel.get_psd
 
-    SIGMA_NOISE = 10
+    SIGMA_NOISE = sigma_noise
     # create simulator object with Gaussian noise
     simulator = Simulator(psd_model, times, np.ones(len(times)) * exposure, mean, pdf="Gaussian", 
                         sigma_noise=SIGMA_NOISE, extension_factor = 100)

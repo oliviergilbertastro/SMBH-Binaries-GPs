@@ -1,0 +1,5 @@
+Red noise + QPO, simulated
+# P_qpo=25,mean=100,P_drw=100,Q=50, sigma_noise=10
+
+p-value = 0.0
+Observed T_LRT = 66.48566753795194

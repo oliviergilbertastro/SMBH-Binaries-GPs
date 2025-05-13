@@ -29,7 +29,7 @@ def plot_lognormal(T_dist, T_obs):
     y = hist  # PDF estimate
     params = lognorm.fit(T_dist)
     plt.stairs(hist, bin_edges, fill=True)
-    x = np.linspace(0,T_obs, 10000)
+    x = np.linspace(0,np.max([T_obs,np.max(T_dist),lognorm.ppf(99.7/100, *params)]), 10000)
     lognorm.cdf(T_obs, *params)
     perc = lognorm.cdf(T_obs, *params)*100
     print(perc)
