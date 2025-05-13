@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from mind_the_gaps.gpmodelling import GPModelling
 from mind_the_gaps.stats import aicc
 from scipy.stats import norm, ks_1samp
+from random import gauss
 import corner
 plt.rcParams['figure.figsize'] = [16, 8]
 
@@ -16,11 +17,22 @@ np.random.seed(10)
 
 def simulate_lc(P_qpo=25,mean=100,P_drw=100,Q=50, sigma_noise=1, timerange=3000, length=500):
     # 2
+
+    # First method : regularly sampled
     times  = np.arange(0, 1000)
+
+    # Second method : irregularly sampled, but always exactly at the same time
     times = np.random.choice(np.arange(0, timerange), size=length, replace=False)
     times = list(times)
     times.sort()
     times = np.array(times)
+
+    # Third method : irregularly sampled in a gaussian way
+    times = [0]
+    for i in range(length):
+        delta_time = np.abs(gauss(timerange/length, 0.2))
+        times.append(times[-1]+delta_time)
+
     exposure = 1#np.diff(times)[0]
 
     P_qpo = P_qpo # period of the QPO
