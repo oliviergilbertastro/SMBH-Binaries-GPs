@@ -227,5 +227,5 @@ if __name__ == "__main__":
     plot_lightcurve(input_drw_lc, title="DRW")
     plot_lightcurve(input_drw_qpo_lc, title="DRW+QPO")
     plt.show()
-    complete_PPP_analysis(input_drw_lc, save_data=True, infos=f"Red noise only, simulated\n{header_drw}", if_plot=False)
+    #complete_PPP_analysis(input_drw_lc, save_data=True, infos=f"Red noise only, simulated\n{header_drw}", if_plot=False)
     complete_PPP_analysis(input_drw_qpo_lc, save_data=True, infos=f"Red noise + QPO, simulated\n{header_drw_qpo}", if_plot=False)

@@ -105,7 +105,7 @@ class Simulator:
     A class to simulate lightcurves from a given power spectral densities and flux probability density function
     """
     def __init__(self, psd_model, times, exposures, mean, pdf="gaussian", bkg_rate=None,
-                 bkg_rate_err=None, sigma_noise=None, aliasing_factor=2, extension_factor=10, max_iter=400, random_state=None):
+                 bkg_rate_err=None, sigma_noise=None, aliasing_factor=2, extension_factor=10, max_iter=400, random_state=None, shutup=False):
         """
         Parameters
         ----------
@@ -162,7 +162,7 @@ class Simulator:
         epsilon = 0.99 # to avoid numerically distinct but equal
         # check that the sampling is consistent with the exposure times of each timestamp
         wrong = np.count_nonzero(np.diff(times) < self.sim_dt * epsilon)
-        if wrong > 0:
+        if wrong > 0 and not shutup:
             raise ValueError("%d timestamps differences are below the exposure integration time! Either reduce the exposure times, or space your observations" % wrong)
 
                 

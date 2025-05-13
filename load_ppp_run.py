@@ -29,7 +29,10 @@ if __name__ == "__main__":
     filetime = "2025_05_13_11h17m22s"
     filetime = "2025_05_13_12h09m52s"
     filetime = "2025_05_13_12h35m16s"
-    filetime = "2025_05_13_13h08m21s"
+    #filetime = "2025_05_13_13h08m21s"
+    #filetime = "2025_05_13_13h33m44s"
+    filetime = "2025_05_13_15h19m37s"
+    filetime = "2025_05_13_16h07m08s"
     lc = load_lightcurve(filetime)
     plot_lightcurve(lc)
     plt.show()
