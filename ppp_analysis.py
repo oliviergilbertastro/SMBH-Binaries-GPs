@@ -182,6 +182,16 @@ def complete_PPP_analysis(input_lc, save_data=True, infos=None, if_plot=True):
     if if_plot:
         plt.show()
     alternative_model, alternative_kernel = define_alternative_model(input_lc, model="Lorentzian", savefolder=savefolder)
+    # Save the models:
+    if save_data:
+        with open(f'{savefolder}null_model.pkl', 'wb') as f:
+            pickle.dump(null_model, f)
+        with open(f'{savefolder}alt_model.pkl', 'wb') as f:
+            pickle.dump(alternative_model, f)
+        with open(f'{savefolder}null_kernel.pkl', 'wb') as f:
+            pickle.dump(null_kernel, f)
+        with open(f'{savefolder}alt_kernel.pkl', 'wb') as f:
+            pickle.dump(alternative_kernel, f)
     if if_plot:
         plt.show()
     lcs = generate_lightcurves(null_model, Nsims=100)
