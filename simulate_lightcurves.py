@@ -91,4 +91,4 @@ def simulate_lc(P_qpo=25,mean=100,P_drw=100,Q=50, sigma_noise=1, timerange=3000,
     drw_qpo_array = np.array([times, noisy_countrates, dy, np.ones(len(times)) * exposure]).T
     np.savetxt("simulations/DRW_QPO.txt", drw_qpo_array, header=f"P_qpo={P_qpo},mean={mean},P_drw={P_drw},Q={Q}, sigma_noise={sigma_noise}, timerange={timerange}, length={length}")
 
-simulate_lc(P_qpo=100,mean=100,P_drw=100,Q=80, sigma_noise=1, timerange=1000, length=100)
+simulate_lc(P_qpo=100,mean=100,P_drw=100,Q=80, sigma_noise=1, timerange=1000, length=200)

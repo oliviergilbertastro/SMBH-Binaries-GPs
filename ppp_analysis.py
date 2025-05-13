@@ -220,6 +220,8 @@ if __name__ == "__main__":
     input_drw_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposures)
     times, noisy_countrates, dy, exposures = drw_qpo_data[:,0], drw_qpo_data[:,1], drw_qpo_data[:,2], drw_qpo_data[:,3]
     input_drw_qpo_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposures)
-
+    plot_lightcurve(input_drw_lc)
+    plot_lightcurve(input_drw_qpo_lc)
+    plt.show()
     complete_PPP_analysis(input_drw_lc, save_data=True, infos=f"Red noise only, simulated\n{header_drw}", if_plot=False)
     complete_PPP_analysis(input_drw_qpo_lc, save_data=True, infos=f"Red noise + QPO, simulated\n{header_drw_qpo}", if_plot=False)
