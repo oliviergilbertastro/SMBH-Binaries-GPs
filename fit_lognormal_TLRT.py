@@ -44,7 +44,11 @@ def plot_lognormal(T_dist, T_obs):
     plt.xlabel("$T_\\mathrm{LRT}$")
 
     print("p-value: %.8f" % (1 - perc / 100))
-    print(f"QPO is detected with {norm.ppf(perc/100)} sigmas of significance")
+    n_sigmas_significance = norm.ppf(perc/100)
+    if n_sigmas_significance > 1:
+        print(f"QPO is detected with {n_sigmas_significance} sigmas of significance.")
+    else:
+        print(f"QPO is not significantly detected.")
 
 if __name__ == "__main__":
     from load_ppp_run import *

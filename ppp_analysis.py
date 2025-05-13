@@ -50,9 +50,9 @@ def define_null_hypothesis(input_lc, savefolder=None):
         plt.savefig(f"{savefolder}null_autocorr.png", dpi=100)
     return null_model, null_kernel
 
-def define_alternative_model(input_lc, model="Lorentzian", savefolder=None):
+def define_alternative_model(input_lc, model="Lorentzian", savefolder=None, initials_guess={"P_qpo":10}):
     bounds_drw = dict(log_a=(-10, 50), log_c=(-10, 10))
-    P = 10 # period of the QPO
+    P = initials_guess["P_qpo"] # period of the QPO
     w = 2 * np.pi / P
     # Define starting parameters
     log_variance_qpo = np.log(100)
