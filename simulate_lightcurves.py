@@ -15,8 +15,13 @@ plt.rcParams['figure.figsize'] = [16, 8]
 
 np.random.seed(10)
 
-def simulate_lc(P_qpo=25,mean=100,P_drw=100,Q=50, sigma_noise=1, timerange=3000, length=500, time_sigma=0.2):
-    header=f"P_qpo={P_qpo},mean={mean},P_drw={P_drw},Q={Q}, sigma_noise={sigma_noise}, timerange={timerange}, length={length}, time_sigma={time_sigma}"
+def simulate_lc(model="DRW", savename=None, P_qpo=25,mean=100,P_drw=100,Q=50, sigma_noise=1, timerange=3000, length=500, time_sigma=0.2):
+    if model == "DRW+QPO" or model == "QPO+DRW":
+        header=f"model={model}, P_qpo={P_qpo},mean={mean},P_drw={P_drw},Q={Q}, sigma_noise={sigma_noise}, timerange={timerange}, length={length}, time_sigma={time_sigma}"
+    elif model == "DRW":
+        header=f"model={model}, mean={mean},P_drw={P_drw},Q={Q}, sigma_noise={sigma_noise}, timerange={timerange}, length={length}, time_sigma={time_sigma}"
+    else:
+        raise ValueError(f'Model "{model}" is not a valid model. Use either "DRW" or "DRW+QPO".')
     # 2
 
     # First method : regularly sampled
@@ -53,17 +58,15 @@ def simulate_lc(P_qpo=25,mean=100,P_drw=100,Q=50, sigma_noise=1, timerange=3000,
     log_d = np.log(w)
     print(f"log variance of the QPO: {log_variance_qpo:.2f}, log_Q: {log_Q:.2f}, log omega: {log_d:.2f}")
 
-    labels = ["Lorentzian", "DRW"]
-    # You can also use Lorentzian from models.celerite_models (which is defined in terms of variance, Q and omega)
-    #kernel = Lorentzian(log_S0=log_variance_qpo, log_Q=np.log(Q), log_omega0=log_d) + RealTerm(log_a=np.log(variance_drw), log_c=np.log(w_bend))
-    kernel = RealTerm(log_a=np.log(variance_drw), log_c=np.log(w_bend))
-    truth = kernel.get_parameter_vector()
-    psd_model = kernel.get_psd
+    if model == "DRW":
+        kernel = RealTerm(log_a=np.log(variance_drw), log_c=np.log(w_bend))
+    else:
+        kernel = Lorentzian(log_S0=log_variance_qpo, log_Q=np.log(Q), log_omega0=log_d) + RealTerm(log_a=np.log(variance_drw), log_c=np.log(w_bend))
 
-    SIGMA_NOISE = sigma_noise
+    psd_model = kernel.get_psd
     # create simulator object with Gaussian noise
     simulator = Simulator(psd_model, times, np.ones(len(times)) * exposure, mean, pdf="Gaussian", 
-                        sigma_noise=SIGMA_NOISE, extension_factor = 100)
+                        sigma_noise=sigma_noise, extension_factor = 100)
 
     # simulate noiseless count rates from the PSD, make the initial lightcurve 2 times as long as the original times
     countrates = simulator.generate_lightcurve()
@@ -71,25 +74,9 @@ def simulate_lc(P_qpo=25,mean=100,P_drw=100,Q=50, sigma_noise=1, timerange=3000,
     noisy_countrates, dy = simulator.add_noise(countrates)
 
     drw_array = np.array([times, noisy_countrates, dy, np.ones(len(times)) * exposure]).T
-    np.savetxt("simulations/DRW.txt", drw_array, header=header)
+    if savename is None:
+        savename = model
+    np.savetxt(f"simulations/{savename}.txt", drw_array, header=header)
 
 
-
-    kernel = Lorentzian(log_S0=log_variance_qpo, log_Q=np.log(Q), log_omega0=log_d) + RealTerm(log_a=np.log(variance_drw), log_c=np.log(w_bend))
-    truth = kernel.get_parameter_vector()
-    psd_model = kernel.get_psd
-
-    SIGMA_NOISE = sigma_noise
-    # create simulator object with Gaussian noise
-    simulator = Simulator(psd_model, times, np.ones(len(times)) * exposure, mean, pdf="Gaussian", 
-                        sigma_noise=SIGMA_NOISE, extension_factor = 100)
-
-    # simulate noiseless count rates from the PSD, make the initial lightcurve 2 times as long as the original times
-    countrates = simulator.generate_lightcurve()
-    # add (Poisson) noise
-    noisy_countrates, dy = simulator.add_noise(countrates)
-
-    drw_qpo_array = np.array([times, noisy_countrates, dy, np.ones(len(times)) * exposure]).T
-    np.savetxt("simulations/DRW_QPO.txt", drw_qpo_array, header=header)
-
-simulate_lc(P_qpo=100,mean=100,P_drw=100,Q=80, sigma_noise=1, timerange=1000, length=1000, time_sigma=0.7)
+simulate_lc(model="DRW+QPO", savename=f"DRW_QPO_{0}", P_qpo=100,mean=100,P_drw=100,Q=80, sigma_noise=1, timerange=1000, length=150, time_sigma=0.7)

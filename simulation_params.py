@@ -16,9 +16,9 @@ plt.show()
 # Plot the TLRT p-values as a function of the number of datapoints
 # All of these used P_qpo=100 and a timerange = 1000 days, so all have 10 cycles of data
 
-p_vals = [0.10210821, 0.00890458, 0.00000016]
-n_sigmas = [1.2696301328349295, 2.369562107619295, 5.115379004922388]
-n_pts = [100, 200, 300]
+p_vals = [0.10210821, 0.00000063, 0.00890458, 0.00005573, 0.00000016]
+n_sigmas = [1.2696301328349295, 4.8456948482440625, 2.369562107619295, 3.8642001750315975, 5.115379004922388]
+n_pts = [100, 150, 200, 250, 300]
 
 plt.figure()
 ax1 = plt.subplot(211)
