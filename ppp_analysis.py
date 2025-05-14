@@ -19,10 +19,14 @@ cpus = 10 # set the number of cores for parallelization
 np.random.seed(10)
 
 
-def plot_lightcurve(input_lc, title=None):
+def plot_lightcurve(input_lc, title=None, units="seconds"):
     fig = plt.figure()
-    plt.errorbar(input_lc._times, input_lc._y, yerr=input_lc._dy, ls="None", marker=".")
-    plt.xlabel("Time (days)")
+    if units == "seconds":
+        plt.errorbar(input_lc._times, input_lc._y, yerr=input_lc._dy, ls="None", marker=".")
+        plt.xlabel("Time (seconds)")
+    elif units == "days":
+        plt.errorbar(input_lc._times / 86400, input_lc._y, yerr=input_lc._dy, ls="None", marker=".")
+        plt.xlabel("Time (days)")
     plt.ylabel("Rates (ct/s)")
     if title is not None:
         plt.title(title, fontsize=16)
@@ -37,11 +41,13 @@ def define_null_hypothesis(input_lc, savefolder=None):
     print("Deriving posteriors for null model")
     null_model.derive_posteriors(max_steps=50000, fit=True, cores=cpus)
 
-    corner_fig = corner.corner(null_model.mcmc_samples, labels=null_model.gp.get_parameter_names(), title_fmt='.1f',
+    corner_fig = corner.corner(null_model.mcmc_samples, labels=null_model.gp.get_parameter_names(), title_fmt='.2f',
                                 quantiles=[0.16, 0.5, 0.84], show_titles=True,
                                 title_kwargs={"fontsize": 18}, max_n_ticks=3, labelpad=0.08,
                                 levels=(1 - np.exp(-0.5), 1 - np.exp(-0.5 * 2 ** 2))) # plots 1 and 2 sigma levels
 
+    if savefolder is not None:
+        plt.savefig(f"{savefolder}null_corner.png", dpi=100)
     autocorr = null_model.autocorr
     fig = plt.figure()
     n = np.arange(1, len(autocorr) + 1)
@@ -52,9 +58,9 @@ def define_null_hypothesis(input_lc, savefolder=None):
         plt.savefig(f"{savefolder}null_autocorr.png", dpi=100)
     return null_model, null_kernel
 
-def define_alternative_model(input_lc, model="Lorentzian", savefolder=None, initials_guess={"P_qpo":10}):
+def define_alternative_model(input_lc, model="Lorentzian", savefolder=None, initial_guess={"P_qpo":10}):
     bounds_drw = dict(log_a=(-10, 50), log_c=(-10, 10))
-    P = initials_guess["P_qpo"] # period of the QPO
+    P = initial_guess["P_qpo"] # period of the QPO
     w = 2 * np.pi / P
     # Define starting parameters
     log_variance_qpo = np.log(100)
@@ -95,10 +101,13 @@ def define_alternative_model(input_lc, model="Lorentzian", savefolder=None, init
         plt.savefig(f"{savefolder}alt_autocorr.png", dpi=100)
 
     corner_fig = corner.corner(alternative_model.mcmc_samples, labels=alternative_model.gp.get_parameter_names(), 
-                            title_fmt='.1f',
+                            title_fmt='.2f',
                                 quantiles=[0.16, 0.5, 0.84], show_titles=True,
                                 title_kwargs={"fontsize": 18}, max_n_ticks=3, labelpad=0.08,
                             levels=(1 - np.exp(-0.5), 1 - np.exp(-0.5 * 2 ** 2))) # plots 1 and 2 sigma levels
+    if savefolder is not None:
+        plt.savefig(f"{savefolder}alt_corner.png", dpi=100)
+
     return alternative_model, alternative_kernel
 
 def generate_lightcurves(null_model, Nsims=100):
@@ -213,13 +222,26 @@ def complete_PPP_analysis(input_lc, save_data=True, infos=None, if_plot=True, sa
     if if_plot:
         plt.show()
 
-def analyze_simulation(savename, model):
+def load_simulation_to_lc(savename):
     data = np.loadtxt(f"simulations/{savename}.txt", skiprows=1)
     with open(f"simulations/{savename}.txt") as f:
-        header = f.readline()
+        first_line = f.readline().strip()
+    if first_line.startswith("#"):
+        first_line = first_line[1:].strip()
+    model = (first_line.split(", ")[0]).split("=")[0]
     times, noisy_countrates, dy, exposures = data[:,0], data[:,1], data[:,2], data[:,3]
-    input_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposures)
+    input_lc = GappyLightcurve(times*86400, noisy_countrates, dy, exposures=exposures)
+    return input_lc, model, first_line
+
+def analyze_simulation(savename):
+    input_lc, model, header = load_simulation_to_lc(savename)
     complete_PPP_analysis(input_lc, save_data=True, infos=f"{model}, simulated\n{header}", if_plot=False)
 
 if __name__ == "__main__":
-    analyze_simulation("DRW_QPO")
+    from simulate_lightcurves import *
+    simulate_lc(model="DRW+QPO", savename=f"DRW_QPO_{0}", P_qpo=100,mean=100,P_drw=100,Q=80, sigma_noise=1, timerange=1000, length=100, time_sigma=0.7)
+    lc, model, header = load_simulation_to_lc(f"DRW_QPO_{0}")
+    plot_lightcurve(input_lc=lc, title=model)
+    plot_lightcurve(input_lc=lc, title=model, units="days")
+    plt.show()
+    complete_PPP_analysis(lc, save_data=True, infos=f"{model}, simulated\n{header}", if_plot=True)

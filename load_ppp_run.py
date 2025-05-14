@@ -33,14 +33,21 @@ if __name__ == "__main__":
     #filetime = "2025_05_13_13h33m44s"
     filetime = "2025_05_13_15h19m37s"
     filetime = "2025_05_13_16h07m08s"
-    filetime = "2025_05_13_17h13m09s"
-    filetime = "2025_05_14_09h11m26s"
+    #filetime = "2025_05_13_17h13m09s"
+    #filetime = "2025_05_14_09h11m26s"
     lc = load_lightcurve(filetime)
+    print(lc.exposures)
+    print(lc.y)
+    print(lc.dy)
+    lc._times *= 86400
+    print(lc.times)
     plot_lightcurve(lc)
     plt.show()
-    #null_likelihoods, alt_likelihoods = load_likelihoods(filetime)
-    #null_model, _ = define_null_hypothesis(lc)
-    #alt_model, _ = define_alternative_model(lc, initials_guess={"P_qpo":100})
+    null_likelihoods, alt_likelihoods = load_likelihoods(filetime)
+    null_model, _ = define_null_hypothesis(lc)
+    plt.show()
+    alt_model, _ = define_alternative_model(lc, initial_guess={"P_qpo":100})
+    plt.show()
     #p_val, T_dist, T_obs = T_LRT_dist(null_likelihoods, alt_likelihoods, null_model, alt_model)
     T_dist, T_obs = load_T_LRT(filetime)
     plot_original(T_dist, T_obs)

@@ -50,6 +50,7 @@ class BaseSimulatorMethod:
         # return the lightcurve as it is
         if len(lc.time) == len(timestamps):
             return lc.countrate
+        
 
         if np.isscalar(bin_exposures):
             start_time = timestamps[0] - bin_exposures
@@ -62,7 +63,7 @@ class BaseSimulatorMethod:
 
         downsampled_rates = np.fromiter((lc.meanrate for lc in lc_split), dtype=float)
 
-        return downsampled_rates   
+        return downsampled_rates
 
 
 class TK95Simulator(BaseSimulatorMethod):
@@ -70,6 +71,9 @@ class TK95Simulator(BaseSimulatorMethod):
         super().__init__(psd_model, timestamps, exposures, mean)
 
     def simulate(self, segment):
+
+        print("SIMULATING")
+
         # Implementation of TK95 simulation
         lc_rates = downsample(segment, self.timestamps, self.exposures)
         lc_rates += self.meanrate - np.mean(lc_rates)
@@ -105,7 +109,7 @@ class Simulator:
     A class to simulate lightcurves from a given power spectral densities and flux probability density function
     """
     def __init__(self, psd_model, times, exposures, mean, pdf="gaussian", bkg_rate=None,
-                 bkg_rate_err=None, sigma_noise=None, aliasing_factor=2, extension_factor=10, max_iter=400, random_state=None, shutup=False):
+                 bkg_rate_err=None, sigma_noise=None, aliasing_factor=2, extension_factor=10, max_iter=400, random_state=None):
         """
         Parameters
         ----------
@@ -159,10 +163,14 @@ class Simulator:
         self.random_state = np.random.RandomState(random_state)
         self.sim_dt = np.min(self._exposures) / aliasing_factor
 
+        #print("simulator.py line 162, I changed self.sim_dt manually")
+        #self.sim_dt = np.min(np.diff(times)) / aliasing_factor
+
+
         epsilon = 0.99 # to avoid numerically distinct but equal
         # check that the sampling is consistent with the exposure times of each timestamp
         wrong = np.count_nonzero(np.diff(times) < self.sim_dt * epsilon)
-        if wrong > 0 and not shutup:
+        if wrong > 0:
             raise ValueError("%d timestamps differences are below the exposure integration time! Either reduce the exposure times, or space your observations" % wrong)
 
                 
@@ -170,10 +178,15 @@ class Simulator:
         end_time = times[-1] + 1.5 * self._exposures[-1] # add small offset to ensure the first and last bins are properly behaved when imprinting the sampling pattern
         self.sim_duration = end_time - start_time
 
+        # MY OVERRIDE:
+        #start_time = times[0] - self.sim_dt
+        #end_time = times[-1] + 1.5 * self.sim_dt # add small offset to ensure the first and last bins are properly behaved when imprinting the sampling pattern
+        #self.sim_duration = end_time - start_time
+
         # duration of the regularly and finely sampled lightcurve
         duration = (times[-1] - times[0]) * extension_factor
 
-        # generate timesctamps for the regular, finely sampled grid and longer than input lightcurve by extending the end
+        # generate timestamps for the regular, finely sampled grid and longer than input lightcurve by extending the end
         self.sim_timestamps = np.arange(times[0] - 2 * self.sim_dt,
                                 times[0] + duration + self.sim_dt,
                                 self.sim_dt)
@@ -270,8 +283,10 @@ class Simulator:
         lc = self.simulate_regularly_sampled()
         # cut a slightly longer segment than the original ligthcurve
         segment = cut_random_segment(lc, self.sim_duration)
+
         # finally call the appropiate simulator
         rates = self.simulator.simulate(segment)
+        #print(f"RATES: {rates}")
         return rates
 
 
@@ -411,6 +426,11 @@ def get_segment(lc, duration, N):
 def cut_random_segment(lc, duration):
     """Cut segment from the input lightcurve of given duration"""
     shift = np.random.uniform(lc.time[0], lc.time[-1] - duration)# - lc.time[0]
+    #print(f"lc.time[0], lc.time[-1] : {lc.time[0]}, {lc.time[-1]}")
+    #print("shift:", shift)
+    #print(f"start: {shift}")
+    #print(f"stop: {shift + duration}")
+    #print(f"duration: {duration}")
     return lc.truncate(start=shift, stop=shift + duration, method="time")
 
 
@@ -431,11 +451,15 @@ def imprint_sampling_pattern(lightcurve, timestamps, bin_exposures):
         gti = [(time - half_bins, time + half_bins) for time in timestamps]
     elif len(half_bins) == len(timestamps):
         gti = [(time - half_bin, time + half_bin) for time, half_bin in zip(timestamps, half_bins)]
+        #print(f"gti: {gti}")
     else:
         raise ValueError("Half bins length (%d) must have same length as timestamps (%d) or be a scalar." % (len(half_bins), len(timestamps)))
 
     # get rid of all bins in between timestamps using Stingray
     lc_split = lightcurve.split_by_gti(gti, min_points=1)
+
+    #print(f"lc_split : {lc_split}")
+
     # get average count rates for the entire subsegment corresponding to each timestamps
     return np.fromiter((lc.meanrate for lc in lc_split), dtype=float)
 
@@ -452,6 +476,21 @@ def downsample(lc, timestamps, bin_exposures):
         Exposure times of each new bin in same units as timestamps
     Returns the downsampled count rates
     """
+
+    if False: # DEBUGGGGG
+        print(f"lc.time : {lc.time}")
+        print(f"timestamps : {timestamps}")
+        print(f"len(lc.time) : {len(lc.time)}")
+        print(f"len(timestamps) : {len(timestamps)}")
+        import matplotlib.pyplot as plt
+
+        print(f"bin_exposures : {bin_exposures}")
+
+        plt.plot(lc.time)
+        plt.plot(timestamps)
+        plt.plot(lc.time-lc.time[0])
+        plt.show()
+
     # return the lightcurve as it is
     if len(lc.time) == len(timestamps):
         return lc.countrate
@@ -460,9 +499,12 @@ def downsample(lc, timestamps, bin_exposures):
         start_time = timestamps[0] - bin_exposures
     else:
         start_time = timestamps[0] - bin_exposures[0]
-    # shif the starting time to match the input timestamps
+    # shift the starting time to match the input timestamps
     shifted = lc.shift(-lc.time[0] + start_time)
-
+    if False:
+        plt.plot(shifted.time)
+        plt.plot(timestamps)
+        plt.show()
     downsampled_rates = imprint_sampling_pattern(shifted, timestamps, bin_exposures)
 
     return downsampled_rates

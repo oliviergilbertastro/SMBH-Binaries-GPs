@@ -17,9 +17,9 @@ np.random.seed(10)
 
 def simulate_lc(model="DRW", savename=None, P_qpo=25,mean=100,P_drw=100,Q=50, sigma_noise=1, timerange=3000, length=500, time_sigma=0.2):
     if model == "DRW+QPO" or model == "QPO+DRW":
-        header=f"model={model}, P_qpo={P_qpo},mean={mean},P_drw={P_drw},Q={Q}, sigma_noise={sigma_noise}, timerange={timerange}, length={length}, time_sigma={time_sigma}"
+        header=f"model={model}, P_qpo={P_qpo}, mean={mean}, P_drw={P_drw}, Q={Q}, sigma_noise={sigma_noise}, timerange={timerange}, length={length}, time_sigma={time_sigma}"
     elif model == "DRW":
-        header=f"model={model}, mean={mean},P_drw={P_drw},Q={Q}, sigma_noise={sigma_noise}, timerange={timerange}, length={length}, time_sigma={time_sigma}"
+        header=f"model={model}, mean={mean}, P_drw={P_drw}, Q={Q}, sigma_noise={sigma_noise}, timerange={timerange}, length={length}, time_sigma={time_sigma}"
     else:
         raise ValueError(f'Model "{model}" is not a valid model. Use either "DRW" or "DRW+QPO".')
     # 2
@@ -35,10 +35,12 @@ def simulate_lc(model="DRW", savename=None, P_qpo=25,mean=100,P_drw=100,Q=50, si
 
     # Third method : irregularly sampled in a gaussian way
     times = [0]
-    for i in range(length):
+    for i in range(length-1):
         delta_time = np.abs(gauss(timerange/length, time_sigma))
         times.append(times[-1]+delta_time)
+    times = np.array(times)
 
+    print(np.diff(times))
     exposure = 1#np.diff(times)[0]
 
     P_qpo = P_qpo # period of the QPO
@@ -56,6 +58,15 @@ def simulate_lc(model="DRW", savename=None, P_qpo=25,mean=100,P_drw=100,Q=50, si
     Q = Q # coherence
     log_Q = np.log(Q)
     log_d = np.log(w)
+
+
+    # CONVERT TO DAYS:
+    #times *= 86400
+    #P_qpo *= 86400
+    #P_drw *= 86400
+
+    print(np.diff(times))
+
     print(f"log variance of the QPO: {log_variance_qpo:.2f}, log_Q: {log_Q:.2f}, log omega: {log_d:.2f}")
 
     if model == "DRW":
@@ -66,12 +77,20 @@ def simulate_lc(model="DRW", savename=None, P_qpo=25,mean=100,P_drw=100,Q=50, si
     psd_model = kernel.get_psd
     # create simulator object with Gaussian noise
     simulator = Simulator(psd_model, times, np.ones(len(times)) * exposure, mean, pdf="Gaussian", 
-                        sigma_noise=sigma_noise, extension_factor = 100)
-
+                        sigma_noise=sigma_noise, extension_factor = 2)
+    print(len(simulator._times))
+    print(len(simulator.sim_timestamps))
     # simulate noiseless count rates from the PSD, make the initial lightcurve 2 times as long as the original times
     countrates = simulator.generate_lightcurve()
     # add (Poisson) noise
     noisy_countrates, dy = simulator.add_noise(countrates)
+
+    print("Simulated time range:", np.min(times), "→", np.max(times))
+    print("Simulated timestamps:", simulator.sim_timestamps[0], "→", simulator.sim_timestamps[-1])
+
+
+    print(noisy_countrates)
+    print(dy)
 
     drw_array = np.array([times, noisy_countrates, dy, np.ones(len(times)) * exposure]).T
     if savename is None:
@@ -79,4 +98,4 @@ def simulate_lc(model="DRW", savename=None, P_qpo=25,mean=100,P_drw=100,Q=50, si
     np.savetxt(f"simulations/{savename}.txt", drw_array, header=header)
 
 
-simulate_lc(model="DRW+QPO", savename=f"DRW_QPO_{0}", P_qpo=100,mean=100,P_drw=100,Q=80, sigma_noise=1, timerange=1000, length=150, time_sigma=0.7)
+#simulate_lc(model="DRW+QPO", savename=f"DRW_QPO_{0}", P_qpo=100,mean=100,P_drw=100,Q=80, sigma_noise=1, timerange=1000, length=150, time_sigma=0.7)
