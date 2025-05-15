@@ -19,6 +19,12 @@ def load_T_LRT(filetime, data_type="simulation"):
     tlrt = np.loadtxt(f"saves/{data_type}/{filetime}/T_LRT.txt")
     return tlrt[:-1], tlrt[-1]
 
+def load_everything(filetime, data_type="simulation"):
+    lc = load_lightcurve(filetime, data_type)
+    null_likelihoods, alt_likelihoods = load_likelihoods(filetime, data_type)
+    T_dist, T_obs = load_T_LRT(filetime, data_type)
+    return lc, null_likelihoods, alt_likelihoods, T_dist, T_obs
+
 if __name__ == "__main__":
     filetime = "2025_05_12_12h04m57s"
     filetime = "2025_05_12_16h38m03s"
@@ -37,20 +43,31 @@ if __name__ == "__main__":
     #filetime = "2025_05_14_09h11m26s"
     #filetime = "2025_05_15_10h19m28s"
     filetime = "2025_05_15_13h28m42s"
-    lc = load_lightcurve(filetime, data_type="real")
-    print(lc.exposures)
-    print(lc.y)
-    print(lc.dy)
-    print(lc.times)
-    plot_lightcurve(lc, units="days")
-    plt.show()
-    null_likelihoods, alt_likelihoods = load_likelihoods(filetime, data_type="real")
+    filetime2 = "2025_05_15_14h38m31s"
+    lc, null_likelihoods, alt_likelihoods, T_dist, T_obs = load_everything(filetime, data_type="real")
+    lc2, null_likelihoods2, alt_likelihoods2, T_dist2, T_obs2 = load_everything(filetime2, data_type="real")
     #null_model, _ = define_null_hypothesis(lc)
     #plt.show()
     #alt_model, _ = define_alternative_model(lc, initial_guess={"P_qpo":100})
     #plt.show()
     #p_val, T_dist, T_obs = T_LRT_dist(null_likelihoods, alt_likelihoods, null_model, alt_model)
-    T_dist, T_obs = load_T_LRT(filetime, data_type="real")
-    plot_original(T_dist, T_obs)
-    plot_lognormal(T_dist, T_obs)
+    #plot_original(T_dist, T_obs)
+    #plot_lognormal(T_dist, T_obs)
+
+
+    plt.figure()
+    plt.hist(T_dist, bins=10, color="red", label="90s exposures")
+    plt.hist(T_dist2, bins=10, color="blue", label="30s exposures")
+    print("Observed LRT_stat: %.3f" % T_obs)
+    perc = percentileofscore(T_dist, T_obs)
+    print("p-value: %.4f" % (1 - perc / 100))
+    plt.axvline(T_obs, label="%.2f%%" % perc, ls="--", color="black")
+
+    #sigmas = [95, 99.7]
+    #colors= ["red", "green"]
+    #or i, sigma in enumerate(sigmas):
+    #    plt.axvline(np.percentile(T_dist, sigma), ls="--", color=colors[i], label=[r"$2\sigma$",r"$3\sigma$"][i])
+    plt.legend()
+    #plt.axvline(np.percentile(T_dist, 99.97), color="green")
+    plt.xlabel("$T_\\mathrm{LRT}$")
     plt.show()

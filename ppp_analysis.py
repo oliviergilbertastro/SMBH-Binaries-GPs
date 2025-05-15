@@ -269,7 +269,7 @@ def analyze_data(savename, save_models=False):
 if __name__ == "__main__":
 
     # Run MRK-421:
-    analyze_data("mrk421", save_models=True)
+    analyze_data("mrk421", save_models=False)
 
     if False:
         from simulate_lightcurves import *
