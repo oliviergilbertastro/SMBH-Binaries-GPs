@@ -64,16 +64,6 @@ def define_null_hypothesis(input_lc, savefolder=None, units="days"):
     return null_model, null_kernel
 
 def define_alternative_model(input_lc, savefolder=None, initial_guess={"P_qpo":50}, units="days"):
-    
-    
-    # Define starting parameters
-    log_variance_qpo = np.log(100)
-    Q = 80 # coherence
-    log_c = np.log(0.5 * w/Q)
-    log_d = np.log(w)
-
-
-
     lc_variance = np.var(input_lc.y)
 
     def bounds_variance(variance, margin=15):
@@ -86,7 +76,6 @@ def define_alternative_model(input_lc, savefolder=None, initial_guess={"P_qpo":5
 
     log_variance = np.log(lc_variance)
     bounds_drw = dict(log_a=(-10, 50), log_c=(-10, 10))
-    drw_variance_guess = 100
     drw_c_guess = 2*np.pi/30
     Q_guess = 100
     P_qpo_guess = initial_guess["P_qpo"] # period of the QPO
@@ -215,7 +204,7 @@ def complete_PPP_analysis(input_lc, save_data=True, infos=None, if_plot=True, sa
     null_model, null_kernel = define_null_hypothesis(input_lc, savefolder=savefolder, units=units)
     if if_plot:
         plt.show()
-    alternative_model, alternative_kernel = define_alternative_model(input_lc, model="Lorentzian", savefolder=savefolder, units=units)
+    alternative_model, alternative_kernel = define_alternative_model(input_lc, savefolder=savefolder, units=units)
     # Save the models:
     if save_data and save_models:
         with open(f'{savefolder}null_model.pkl', 'wb') as f:
@@ -274,7 +263,5 @@ if __name__ == "__main__":
                 )
     # exposures of 2 mins
     lc, model, header = load_simulation_to_lc(f"DRW_QPO_{0}")
-    plot_lightcurve(input_lc=lc, title=model)
-    plot_lightcurve(input_lc=lc, title=model, units="days")
     plt.show()
-    complete_PPP_analysis(lc, save_data=True, infos=f"{model}, simulated\n{header}", if_plot=True, units="days")
+    complete_PPP_analysis(lc, save_data=True, infos=f"{model}, simulated\n{header}", if_plot=True, units="seconds")
