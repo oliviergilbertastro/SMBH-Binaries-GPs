@@ -1,5 +1,7 @@
 """
 Code to calculate the posterior predictive p-value (PPP), which calculates the likelihood ratio test (LRT) distribution
+
+Main code, this basically does everything for the modelling
 """
 
 from mind_the_gaps.lightcurves import GappyLightcurve
@@ -14,6 +16,7 @@ import matplotlib.pyplot as plt
 import celerite, corner
 from scipy.stats import percentileofscore
 from utils import print_color
+from fit_lognormal_TLRT import plot_lognormal
 
 cpus = 10 # set the number of cores for parallelization
 np.random.seed(10)
@@ -225,12 +228,15 @@ def complete_PPP_analysis(input_lc, data_type="simulation", save_data=True, info
     if save_data:
         np.savetxt(f"{savefolder}likelihoods.txt", np.array([likelihoods_null, likelihoods_alt]).T)
     pval, T_dist, T_obs = T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model, savefolder=savefolder)
+    pval_lognorm, nsigma = plot_lognormal(T_dist, T_obs, savefolder=savefolder)
     if save_data:
         tlrt = list(T_dist)
         tlrt.append(T_obs)
         np.savetxt(f"{savefolder}T_LRT.txt", np.array(tlrt))
         with open(f"{savefolder}info.txt", "a") as f:
-                f.write(f"\np-value = {pval}")
+                f.write(f"\np-value compared to 100 lightcurves = {pval}")
+                f.write(f"\np-value compared to fitted lognorm distribution = {pval_lognorm}")
+                f.write(f"\nn-sigmas of significance of QPO signal = {nsigma}")
                 f.write(f"\nObserved T_LRT = {T_obs}")
     if if_plot:
         plt.show()
@@ -250,21 +256,36 @@ def analyze_simulation(savename):
     input_lc, model, header = load_simulation_to_lc(savename)
     complete_PPP_analysis(input_lc, save_data=True, infos=f"{model}, simulated\n{header}", if_plot=False)
 
+def load_data_to_lc(savename):
+    data = np.loadtxt(f"data/transformed/{savename}.txt")
+    times, noisy_countrates, dy, exposures = data[:,0], data[:,1], data[:,2], data[:,3]
+    input_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposures)
+    return input_lc
+
+def analyze_data(savename):
+    input_lc = load_simulation_to_lc(savename)
+    complete_PPP_analysis(input_lc, save_data=True, infos=f"{savename}, real\n", if_plot=True, units="seconds")
+
 if __name__ == "__main__":
-    from simulate_lightcurves import *
-    simulate_lc(model="DRW+QPO",
-                savename=f"DRW_QPO_{0}",
-                P_qpo=25*86400, # 25 days
-                mean=100,
-                P_drw=100*86400, # 100 days
-                Q=80,
-                sigma_noise=1,
-                timerange=365*86400, 
-                length=100,
-                time_sigma=0.7*86400,
-                exposure_time=60 # exposure times for ASAS-SN and SDSS DR16 are on the order of 1 minute
-                )
-    # exposures of 2 mins
-    lc, model, header = load_simulation_to_lc(f"DRW_QPO_{0}")
-    plt.show()
-    complete_PPP_analysis(lc, save_data=True, infos=f"{model}, simulated\n{header}", if_plot=True, units="seconds")
+
+    # Run MRK-421:
+
+
+    if False:
+        from simulate_lightcurves import *
+        simulate_lc(model="DRW+QPO",
+                    savename=f"DRW_QPO_{0}",
+                    P_qpo=25*86400, # 25 days
+                    mean=100,
+                    P_drw=100*86400, # 100 days
+                    Q=80,
+                    sigma_noise=1,
+                    timerange=365*86400, 
+                    length=100,
+                    time_sigma=0.7*86400,
+                    exposure_time=60 # exposure times for ASAS-SN and SDSS DR16 are on the order of 1 minute
+                    )
+        # exposures of 2 mins
+        lc, model, header = load_simulation_to_lc(f"DRW_QPO_{0}")
+        plt.show()
+        complete_PPP_analysis(lc, save_data=True, infos=f"{model}, simulated\n{header}", if_plot=True, units="seconds")

@@ -1,8 +1,7 @@
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
-from ppp_analysis import *
-from scipy.optimize import curve_fit
+from scipy.stats import percentileofscore
 from scipy.stats import lognorm, norm
 
 
@@ -22,7 +21,7 @@ def plot_original(T_dist, T_obs):
     #plt.axvline(np.percentile(T_dist, 99.97), color="green")
     plt.xlabel("$T_\\mathrm{LRT}$")
 
-def plot_lognormal(T_dist, T_obs):
+def plot_lognormal(T_dist, T_obs, savefolder=None):
     plt.figure()
     hist, bin_edges = np.histogram(T_dist, bins=10, density=True)
     x = (bin_edges[:-1] + bin_edges[1:]) / 2  # Bin centers
@@ -49,6 +48,9 @@ def plot_lognormal(T_dist, T_obs):
         print(f"QPO is detected with {n_sigmas_significance} sigmas of significance.")
     else:
         print(f"QPO is not significantly detected.")
+    if savefolder is not None:
+        plt.savefig(f"{savefolder}LRT_statistic_lognorm.png", dpi=100)
+    return (1 - perc / 100), n_sigmas_significance
 
 if __name__ == "__main__":
     from load_ppp_run import *
