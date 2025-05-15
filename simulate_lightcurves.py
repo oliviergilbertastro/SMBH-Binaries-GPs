@@ -15,7 +15,19 @@ plt.rcParams['figure.figsize'] = [16, 8]
 
 np.random.seed(10)
 
-def simulate_lc(model="DRW", savename=None, P_qpo=25,mean=100,P_drw=100,Q=50, sigma_noise=1, timerange=3000, length=500, time_sigma=0.2):
+def simulate_lc(model="DRW", savename=None, P_qpo=25,mean=100,P_drw=100,Q=50, sigma_noise=1, timerange=3000, length=500, time_sigma=0.2, exposure_time=1):
+    """
+    model : string (either DRW or DRW+QPO), chooses the model
+    savename : string, name for saving the numpy array in the save directory
+    P_qpo : float/int, period of the QPO in seconds (or in days if everything else is in days too)
+    P_drw : float/int, period of the DRW in seconds (or in days if everything else is in days too)
+    Q : float/int, coherence of the qpo
+    sigma_noise : float/int, standard deviation for the gaussian noise added to the lightcurve. Also used for the error bars.
+    timerange : int, total length of the lightcurve you want to simulate in seconds (or in days if everything else is in days too)
+    length : int, number of datapoints which you want to simulate. They will approximately be separated by timerange/length time units.
+    time_sigma : float/int, standard deviation of the gaussian from which to sample the irregular times.
+    exposure_time : float/int, exposure time of each individual datapoint in seconds (or in days if everything else is in days too)
+    """
     if model == "DRW+QPO" or model == "QPO+DRW":
         header=f"model={model}, P_qpo={P_qpo}, mean={mean}, P_drw={P_drw}, Q={Q}, sigma_noise={sigma_noise}, timerange={timerange}, length={length}, time_sigma={time_sigma}"
     elif model == "DRW":
@@ -60,10 +72,8 @@ def simulate_lc(model="DRW", savename=None, P_qpo=25,mean=100,P_drw=100,Q=50, si
     log_d = np.log(w)
 
 
-    # CONVERT TO DAYS:
-    #times *= 86400
-    #P_qpo *= 86400
-    #P_drw *= 86400
+    # Let's act as if everything is in DAYS (times, period, exposures, etc.):
+    exposure = 1/(24*60) # 1 minute exposure ?
 
     print(np.diff(times))
 
