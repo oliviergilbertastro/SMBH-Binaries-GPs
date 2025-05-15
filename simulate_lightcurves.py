@@ -52,8 +52,8 @@ def simulate_lc(model="DRW", savename=None, P_qpo=25,mean=100,P_drw=100,Q=50, si
         times.append(times[-1]+delta_time)
     times = np.array(times)
 
-    print(np.diff(times))
-    exposure = 1#np.diff(times)[0]
+
+    exposure = exposure_time#np.diff(times)[0]
 
     P_qpo = P_qpo # period of the QPO
     w = 2 * np.pi / P_qpo
@@ -73,9 +73,7 @@ def simulate_lc(model="DRW", savename=None, P_qpo=25,mean=100,P_drw=100,Q=50, si
 
 
     # Let's act as if everything is in DAYS (times, period, exposures, etc.):
-    exposure = 1/(24*60) # 1 minute exposure ?
 
-    print(np.diff(times))
 
     print(f"log variance of the QPO: {log_variance_qpo:.2f}, log_Q: {log_Q:.2f}, log omega: {log_d:.2f}")
 
@@ -88,8 +86,7 @@ def simulate_lc(model="DRW", savename=None, P_qpo=25,mean=100,P_drw=100,Q=50, si
     # create simulator object with Gaussian noise
     simulator = Simulator(psd_model, times, np.ones(len(times)) * exposure, mean, pdf="Gaussian", 
                         sigma_noise=sigma_noise, extension_factor = 2)
-    print(len(simulator._times))
-    print(len(simulator.sim_timestamps))
+
     # simulate noiseless count rates from the PSD, make the initial lightcurve 2 times as long as the original times
     countrates = simulator.generate_lightcurve()
     # add (Poisson) noise
@@ -97,7 +94,6 @@ def simulate_lc(model="DRW", savename=None, P_qpo=25,mean=100,P_drw=100,Q=50, si
 
     print("Simulated time range:", np.min(times), "→", np.max(times))
     print("Simulated timestamps:", simulator.sim_timestamps[0], "→", simulator.sim_timestamps[-1])
-
 
     print(noisy_countrates)
     print(dy)

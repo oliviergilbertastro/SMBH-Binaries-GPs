@@ -239,7 +239,7 @@ def analyze_simulation(savename):
 
 if __name__ == "__main__":
     from simulate_lightcurves import *
-    simulate_lc(model="DRW+QPO", savename=f"DRW_QPO_{0}", P_qpo=100,mean=100,P_drw=100,Q=80, sigma_noise=1, timerange=1000, length=100, time_sigma=0.7)
+    simulate_lc(model="DRW+QPO", savename=f"DRW_QPO_{0}", P_qpo=25,mean=100,P_drw=100,Q=80, sigma_noise=1, timerange=365, length=100, time_sigma=0.7, exposure_time=1/(24*30))
     lc, model, header = load_simulation_to_lc(f"DRW_QPO_{0}")
     plot_lightcurve(input_lc=lc, title=model)
     plot_lightcurve(input_lc=lc, title=model, units="days")
