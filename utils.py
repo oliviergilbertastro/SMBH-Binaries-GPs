@@ -495,8 +495,13 @@ if __name__ == "__main__":
 
 # For SMBHBs
 
-def P_qpo_from_logw0(logw0, logw0_std=None):
+def P_qpo_from_logw0(logw0, logw0_std=None, units="days"):
+    """
+    Returns the period of the QPO in days
+    """
     res = 2*np.pi / np.exp(logw0)
+    if units == "seconds":
+        res /= 86400
     if logw0_std is None:
         return res
     return np.array([res, res*logw0_std[0], res*logw0_std[1]])
@@ -508,6 +513,7 @@ if __name__ == "__main__":
 
     print(P_qpo_from_logw0(-2.8,[0.0,0.1]))
     print(P_qpo_from_logw0(-13.31,[0.17,0.27])/86400)
+    print(P_qpo_from_logw0(-16.91,[0.41,0.30], units="seconds"))
 
     # Print the period bounds from the fitting (log_d=[-5,5])
     print(P_qpo_from_logw0(-5))

@@ -415,6 +415,11 @@ class GPModelling:
         # set the new PSD with update params
         simulator.psd_model = self.gp.kernel.get_psd
         rates = simulator.generate_lightcurve()
+        if np.any(np.isnan(rates)) or np.any(rates < 0):
+            print(f"rates contains invalid values: min={np.min(rates)}, max={np.max(rates)}")
+            rates = np.clip(rates, a_min=0, a_max=None)
         noisy_rates, dy = simulator.add_noise(rates)
+        if np.any(np.isnan(noisy_rates)) or np.any(noisy_rates < 0):
+            print(f"noisy_rates contains invalid values: min={np.min(rates)}, max={np.max(rates)}")
         lc = GappyLightcurve(self._lightcurve.times, noisy_rates, dy)
         return lc

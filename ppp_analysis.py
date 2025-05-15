@@ -193,7 +193,7 @@ def complete_PPP_analysis(input_lc, data_type="simulation", save_data=True, info
         from datetime import datetime
         import os
         savefolder = f"saves/{data_type}/" + datetime.now().strftime('%Y_%m_%d_%Hh%Mm%Ss') + "/"
-        print(savefolder)
+        print_color(f"Files saved in {savefolder}")
         if not os.path.exists(savefolder):
             os.makedirs(savefolder)
         else:
@@ -262,28 +262,28 @@ def load_data_to_lc(savename):
     input_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposures)
     return input_lc
 
-def analyze_data(savename):
+def analyze_data(savename, save_models=False):
     input_lc = load_data_to_lc(savename)
-    complete_PPP_analysis(input_lc, save_data=True, infos=f"{savename}, real\n", if_plot=True, units="seconds")
+    complete_PPP_analysis(input_lc, save_data=True, infos=f"{savename}, real\n", if_plot=True, units="seconds", data_type="real", save_models=save_models)
 
 if __name__ == "__main__":
 
     # Run MRK-421:
-    analyze_data("mrk421")
+    #analyze_data("mrk421", save_models=True)
 
-    if False:
+    if True:
         from simulate_lightcurves import *
         simulate_lc(model="DRW+QPO",
                     savename=f"DRW_QPO_{0}",
-                    P_qpo=25*86400, # 25 days
+                    P_qpo=25, # 25 days
                     mean=100,
-                    P_drw=100*86400, # 100 days
+                    P_drw=100, # 100 days
                     Q=80,
                     sigma_noise=1,
-                    timerange=365*86400, 
+                    timerange=10000, 
                     length=100,
-                    time_sigma=0.7*86400,
-                    exposure_time=60 # exposure times for ASAS-SN and SDSS DR16 are on the order of 1 minute
+                    time_sigma=0.7,
+                    exposure_time=100 # exposure times for ASAS-SN and SDSS DR16 are on the order of 1 minute
                     )
         # exposures of 2 mins
         lc, model, header = load_simulation_to_lc(f"DRW_QPO_{0}")
