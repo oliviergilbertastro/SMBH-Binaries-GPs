@@ -4,19 +4,19 @@ import matplotlib.pyplot as plt
 from ppp_analysis import *
 from fit_lognormal_TLRT import plot_lognormal, plot_original
 
-def load_lightcurve(filetime):
+def load_lightcurve(filetime, data_type="simulation"):
     """returns GappyLightCurve"""
-    lc = pickle.load(open("saves/ppp/"+filetime+"/input_lc.pkl",'rb'))
+    lc = pickle.load(open(f"saves/{data_type}/{filetime}/input_lc.pkl",'rb'))
     return lc
 
-def load_likelihoods(filetime):
+def load_likelihoods(filetime, data_type="simulation"):
     """returns null_likelihoods, alt_likelihoods"""
-    likelihoods = np.loadtxt(f"saves/ppp/{filetime}/likelihoods.txt")
+    likelihoods = np.loadtxt(f"saves/{data_type}/{filetime}/likelihoods.txt")
     return likelihoods[:,0], likelihoods[:,1]
 
-def load_T_LRT(filetime):
+def load_T_LRT(filetime, data_type="simulation"):
     """returns T_dist, T_obs"""
-    tlrt = np.loadtxt(f"saves/ppp/{filetime}/T_LRT.txt")
+    tlrt = np.loadtxt(f"saves/{data_type}/{filetime}/T_LRT.txt")
     return tlrt[:-1], tlrt[-1]
 
 if __name__ == "__main__":
@@ -35,19 +35,19 @@ if __name__ == "__main__":
     filetime = "2025_05_13_16h07m08s"
     #filetime = "2025_05_13_17h13m09s"
     #filetime = "2025_05_14_09h11m26s"
+    filetime = "2025_05_15_10h19m28s"
     lc = load_lightcurve(filetime)
     print(lc.exposures)
     print(lc.y)
     print(lc.dy)
-    lc._times *= 86400
     print(lc.times)
-    plot_lightcurve(lc)
+    plot_lightcurve(lc, units="seconds")
     plt.show()
     null_likelihoods, alt_likelihoods = load_likelihoods(filetime)
-    null_model, _ = define_null_hypothesis(lc)
-    plt.show()
-    alt_model, _ = define_alternative_model(lc, initial_guess={"P_qpo":100})
-    plt.show()
+    #null_model, _ = define_null_hypothesis(lc)
+    #plt.show()
+    #alt_model, _ = define_alternative_model(lc, initial_guess={"P_qpo":100})
+    #plt.show()
     #p_val, T_dist, T_obs = T_LRT_dist(null_likelihoods, alt_likelihoods, null_model, alt_model)
     T_dist, T_obs = load_T_LRT(filetime)
     plot_original(T_dist, T_obs)

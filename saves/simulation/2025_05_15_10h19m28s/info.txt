@@ -1,0 +1,4 @@
+model, simulated
+model=DRW+QPO, P_qpo=2160000, mean=100, P_drw=8640000, Q=80, sigma_noise=1, timerange=31536000, length=100, time_sigma=60479.99999999999
+p-value = 0.0
+Observed T_LRT = 50.00226094692971

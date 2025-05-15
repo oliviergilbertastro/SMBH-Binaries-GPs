@@ -165,7 +165,7 @@ def T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model,
     return (1 - perc / 100), T_dist, T_obs
 
 
-def complete_PPP_analysis(input_lc, save_data=True, infos=None, if_plot=True, save_models=False, units="days"):
+def complete_PPP_analysis(input_lc, data_type="simulation", save_data=True, infos=None, if_plot=True, save_models=False, units="days"):
     """
     Make the full analysis of LRT distributions and save the important data under "saves/ppp/DD_MM_YYYY_TIME"
     input_lc : GappyLightCurve object of our data (or simulated data)
@@ -181,12 +181,15 @@ def complete_PPP_analysis(input_lc, save_data=True, infos=None, if_plot=True, sa
     units = units.lower()
     if units != "days" and units != "seconds":
         raise ValueError("Units must be either seconds or days")
+    data_type = data_type.lower()
+    if data_type != "simulation" and data_type != "real":
+        raise ValueError(f'data_type "{data_type}" is not a valid data type, must be "simulation" or "real".')
     savefolder = None
     if save_data:
         import pickle
         from datetime import datetime
         import os
-        savefolder = "saves/ppp/" + datetime.now().strftime('%Y_%m_%d_%Hh%Mm%Ss') + "/"
+        savefolder = f"saves/{data_type}/" + datetime.now().strftime('%Y_%m_%d_%Hh%Mm%Ss') + "/"
         print(savefolder)
         if not os.path.exists(savefolder):
             os.makedirs(savefolder)
