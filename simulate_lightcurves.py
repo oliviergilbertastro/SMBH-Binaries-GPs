@@ -64,9 +64,6 @@ def simulate_lc(model="DRW", savename=None, P_qpo=25,mean=100,P_drw=100,Q=50, si
     w_bend = 2 * np.pi / P_drw # angular frequency of the DRW or Bending Powerlaw
     # Define starting parameters
     log_variance_qpo = np.log(variance_drw)
-    log_sigma_matern = np.log(np.sqrt(variance_drw))
-    P_matern = 10
-    log_rho_matern =  np.log(P_matern / 2 / np.pi)
     Q = Q # coherence
     log_Q = np.log(Q)
     log_d = np.log(w)
@@ -85,7 +82,7 @@ def simulate_lc(model="DRW", savename=None, P_qpo=25,mean=100,P_drw=100,Q=50, si
     psd_model = kernel.get_psd
     # create simulator object with Gaussian noise
     simulator = Simulator(psd_model, times, np.ones(len(times)) * exposure, mean, pdf="Gaussian", 
-                        sigma_noise=sigma_noise, extension_factor = 2)
+                        sigma_noise=sigma_noise, extension_factor = 100)
 
     # simulate noiseless count rates from the PSD, make the initial lightcurve 2 times as long as the original times
     countrates = simulator.generate_lightcurve()

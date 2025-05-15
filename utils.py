@@ -507,7 +507,7 @@ if __name__ == "__main__":
 
 
     print(P_qpo_from_logw0(-2.8,[0.0,0.1]))
-    print(P_qpo_from_logw0(-11.82,[0.05,2.53])/86400)
+    print(P_qpo_from_logw0(-13.31,[0.17,0.27])/86400)
 
     # Print the period bounds from the fitting (log_d=[-5,5])
     print(P_qpo_from_logw0(-5))

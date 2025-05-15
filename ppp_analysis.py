@@ -19,12 +19,12 @@ cpus = 10 # set the number of cores for parallelization
 np.random.seed(10)
 
 
-def plot_lightcurve(input_lc, title=None, units="seconds"):
+def plot_lightcurve(input_lc, title=None, units="days"):
     fig = plt.figure()
-    if units == "seconds":
+    if units == "days":
         plt.errorbar(input_lc._times, input_lc._y, yerr=input_lc._dy, ls="None", marker=".")
-        plt.xlabel("Time (seconds)")
-    elif units == "days":
+        plt.xlabel("Time (days)")
+    elif units == "seconds":
         plt.errorbar(input_lc._times / 86400, input_lc._y, yerr=input_lc._dy, ls="None", marker=".")
         plt.xlabel("Time (days)")
     plt.ylabel("Rates (ct/s)")
@@ -34,9 +34,14 @@ def plot_lightcurve(input_lc, title=None, units="seconds"):
 
 
 # Define the null-hypothesis
-def define_null_hypothesis(input_lc, savefolder=None):
+def define_null_hypothesis(input_lc, savefolder=None, units="days"):
     bounds_drw = dict(log_a=(-10, 50), log_c=(-10, 10))
-    null_kernel = celerite.terms.RealTerm(log_a=np.log(100), log_c=np.log(2*np.pi/30), bounds=bounds_drw)
+    drw_variance_guess = np.var(input_lc.y)
+    drw_c_guess = 2*np.pi/30
+    if units == "seconds":
+        bounds_drw = dict(log_a=(-10, 50), log_c=(-21.37, -1.37)) # log_c bounds shifted accordingly to 86400 seconds/day factor
+        drw_c_guess /= 86400
+    null_kernel = celerite.terms.RealTerm(log_a=np.log(drw_variance_guess), log_c=np.log(drw_c_guess), bounds=bounds_drw)
     null_model = GPModelling(input_lc, null_kernel)
     print("Deriving posteriors for null model")
     null_model.derive_posteriors(max_steps=50000, fit=True, cores=cpus)
@@ -58,19 +63,18 @@ def define_null_hypothesis(input_lc, savefolder=None):
         plt.savefig(f"{savefolder}null_autocorr.png", dpi=100)
     return null_model, null_kernel
 
-def define_alternative_model(input_lc, model="Lorentzian", savefolder=None, initial_guess={"P_qpo":10}):
-    bounds_drw = dict(log_a=(-10, 50), log_c=(-10, 10))
-    P = initial_guess["P_qpo"] # period of the QPO
-    w = 2 * np.pi / P
+def define_alternative_model(input_lc, savefolder=None, initial_guess={"P_qpo":50}, units="days"):
+    
+    
     # Define starting parameters
     log_variance_qpo = np.log(100)
     Q = 80 # coherence
     log_c = np.log(0.5 * w/Q)
     log_d = np.log(w)
-    print(f"log variance starting values of the QPO: {log_variance_qpo:.2f}, log_c: {log_c:.2f}, log omega: {log_d:.2f}")
+
+
 
     lc_variance = np.var(input_lc.y)
-    bounds_qpo_complex = dict(log_a=(-10, 50), log_c=(-10, 10), log_d=(-5, 5))
 
     def bounds_variance(variance, margin=15):
         return np.log(variance/margin), np.log(variance * margin)
@@ -78,15 +82,27 @@ def define_alternative_model(input_lc, model="Lorentzian", savefolder=None, init
     def bounds_bend(duration, dt):
         nyquist = 1 / (2 * dt)
         return np.log(2 * np.pi/duration), np.log(nyquist * 2 * np.pi)
-    variance_bounds = bounds_variance(lc_variance)
-    bend_bounds = bounds_bend(input_lc.duration, input_lc._exposures[0])
-    Q_bounds = (np.log(1.5), np.log(1000))
-    bounds_qpo = dict(log_S0=variance_bounds, log_Q=Q_bounds, log_omega0=bend_bounds)
     # You can also use Lorentzian from models.celerite_models (which is defined in terms of variance, Q and omega)
-    if model == "Lorentzian":
-        alternative_kernel = Lor(np.log(100), np.log(100), np.log(2 * np.pi/10), bounds=bounds_qpo) + celerite.terms.RealTerm(log_a=np.log(100), log_c=np.log(2*np.pi/30), bounds=bounds_drw)
-    else:
-        alternative_kernel = celerite.terms.ComplexTerm(log_a=log_variance_qpo, log_c=log_c, log_d=log_d, bounds=bounds_qpo_complex) + celerite.terms.RealTerm(log_a=np.log(100), log_c=np.log(2*np.pi/30), bounds=bounds_drw)
+
+    log_variance = np.log(lc_variance)
+    bounds_drw = dict(log_a=(-10, 50), log_c=(-10, 10))
+    drw_variance_guess = 100
+    drw_c_guess = 2*np.pi/30
+    Q_guess = 100
+    P_qpo_guess = initial_guess["P_qpo"] # period of the QPO
+    w_qpo_guess = 2 * np.pi / P_qpo_guess
+    variance_bounds = bounds_variance(lc_variance)
+    Q_bounds = (np.log(1.5), np.log(1000))
+    bend_bounds = bounds_bend(input_lc.duration, input_lc._exposures[0])
+    bounds_qpo = dict(log_S0=variance_bounds, log_Q=Q_bounds, log_omega0=bend_bounds)
+    if units == "seconds":
+        drw_c_guess /= 86400
+        bounds_drw = dict(log_a=(-10, 50), log_c=(-21.37, -1.37)) # log_c bounds shifted accordingly to 86400 seconds/day factor
+        w_qpo_guess /= 86400
+
+
+    print(f"log variance starting values of the QPO: {log_variance:.2f}, log_Q: {np.log(Q_guess):.2f}, log omega0: {np.log(w_qpo_guess):.2f}")
+    alternative_kernel = Lor(log_variance, np.log(Q_guess), np.log(w_qpo_guess), bounds=bounds_qpo) + celerite.terms.RealTerm(log_a=log_variance, log_c=np.log(drw_c_guess), bounds=bounds_drw)
     alternative_model = GPModelling(input_lc, alternative_kernel)
     print("Deriving posteriors for alternative model")
     alternative_model.derive_posteriors(max_steps=50000, fit=True, cores=cpus)
@@ -160,17 +176,22 @@ def T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model,
     return (1 - perc / 100), T_dist, T_obs
 
 
-def complete_PPP_analysis(input_lc, save_data=True, infos=None, if_plot=True, save_models=False):
+def complete_PPP_analysis(input_lc, save_data=True, infos=None, if_plot=True, save_models=False, units="days"):
     """
     Make the full analysis of LRT distributions and save the important data under "saves/ppp/DD_MM_YYYY_TIME"
     input_lc : GappyLightCurve object of our data (or simulated data)
     save_data : bool, True if we want to save
     infos : string to add infos as a text file in the save folder
+    save_models : bool, True to save the null and alternative models as pickle objects (takes a lot of space, around 30mb each)
+    units : string, change to "seconds" so the bounds and initial guesses of the model fitting are adjusted
     """
     if infos is not None and not save_data:
         raise ValueError("There are infos to be saved, but save_data=False")
     if save_models and not save_data:
         raise ValueError("There are models to be saved, but save_data=False")
+    units = units.lower()
+    if units != "days" and units != "seconds":
+        raise ValueError("Units must be either seconds or days")
     savefolder = None
     if save_data:
         import pickle
@@ -188,13 +209,13 @@ def complete_PPP_analysis(input_lc, save_data=True, infos=None, if_plot=True, sa
             with open(f"{savefolder}info.txt", "a") as f:
                 f.write(infos)
 
-    plot_lightcurve(input_lc)
+    plot_lightcurve(input_lc, units=units)
     if if_plot:
         plt.show()
-    null_model, null_kernel = define_null_hypothesis(input_lc, savefolder=savefolder)
+    null_model, null_kernel = define_null_hypothesis(input_lc, savefolder=savefolder, units=units)
     if if_plot:
         plt.show()
-    alternative_model, alternative_kernel = define_alternative_model(input_lc, model="Lorentzian", savefolder=savefolder)
+    alternative_model, alternative_kernel = define_alternative_model(input_lc, model="Lorentzian", savefolder=savefolder, units=units)
     # Save the models:
     if save_data and save_models:
         with open(f'{savefolder}null_model.pkl', 'wb') as f:
@@ -230,7 +251,7 @@ def load_simulation_to_lc(savename):
         first_line = first_line[1:].strip()
     model = (first_line.split(", ")[0]).split("=")[0]
     times, noisy_countrates, dy, exposures = data[:,0], data[:,1], data[:,2], data[:,3]
-    input_lc = GappyLightcurve(times*86400, noisy_countrates, dy, exposures=exposures)
+    input_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposures)
     return input_lc, model, first_line
 
 def analyze_simulation(savename):
@@ -239,9 +260,21 @@ def analyze_simulation(savename):
 
 if __name__ == "__main__":
     from simulate_lightcurves import *
-    simulate_lc(model="DRW+QPO", savename=f"DRW_QPO_{0}", P_qpo=25,mean=100,P_drw=100,Q=80, sigma_noise=1, timerange=365, length=100, time_sigma=0.7, exposure_time=1/(24*30))
+    simulate_lc(model="DRW+QPO",
+                savename=f"DRW_QPO_{0}",
+                P_qpo=25*86400, # 25 days
+                mean=100,
+                P_drw=100*86400, # 100 days
+                Q=80,
+                sigma_noise=1,
+                timerange=365*86400, 
+                length=100,
+                time_sigma=0.7*86400,
+                exposure_time=60 # exposure times for ASAS-SN and SDSS DR16 are on the order of 1 minute
+                )
+    # exposures of 2 mins
     lc, model, header = load_simulation_to_lc(f"DRW_QPO_{0}")
     plot_lightcurve(input_lc=lc, title=model)
     plot_lightcurve(input_lc=lc, title=model, units="days")
     plt.show()
-    complete_PPP_analysis(lc, save_data=True, infos=f"{model}, simulated\n{header}", if_plot=True)
+    complete_PPP_analysis(lc, save_data=True, infos=f"{model}, simulated\n{header}", if_plot=True, units="days")
