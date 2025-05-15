@@ -19,7 +19,7 @@ def load_ASASSN_data(object_name):
     data = pd.read_csv(f"data/raw/{object_name}.csv", header=9)
     jd, flux, flux_error = data["JD"], data["Flux"], data["Flux Error"]
     times = (jd-jd[0])*86400 # Put the start time at 0 and convert to seconds
-    exposures = np.ones_like(jd)*30 # For ASAS-SN, each epoch consists of 3x90s exposures. Maybe it's only 90s??
+    exposures = np.ones_like(jd)*90 # For ASAS-SN, each epoch consists of 3x90s exposures. Maybe it's only 90s??
 
     # Not quite sure if flux = count_rates (i.e. counts/s), uncertainties sure seem small though
     return (object_name, np.array([times, flux, flux_error, exposures]))
@@ -47,15 +47,43 @@ def save_lc(lc):
 
 if __name__ == "__main__":
     lc = load_ASASSN_data("mrk421")
-    plot_lightcurve(lc, units="seconds")
+    #plot_lightcurve(lc, units="seconds")
 
     times = lc[1][0]
-    print(np.diff(times))
+    flux = lc[1][1]
+    flux_err = lc[1][2]
+    data = pd.read_csv(f"data/raw/mrk421.csv", header=9)
+    cam = data["Camera"]
+    good_indexes = []
+    for i in range(len(cam)):
+        if cam[i] == "bc":
+            good_indexes.append(i)
+        
+
+    print(np.mean(flux_err))
+    plt.plot(flux, flux_err/flux, "o", color="blue", label="camera=bs")
+    plt.plot(flux[good_indexes], flux_err[good_indexes]/flux[good_indexes], "o", color="red", label="camera=bc")
+    plt.xlabel("Flux", fontsize=16)
+    plt.ylabel("Flux_err/Flux", fontsize=16)
+    plt.title("Mrk 421 flux err vs flux")
+    plt.legend()
+    plt.show()
+
+
+    plt.plot(flux, flux_err, "o")
+    plt.xlabel("Flux", fontsize=16)
+    plt.ylabel("Flux_err", fontsize=16)
+    plt.show()
+
+    print(np.median(np.diff(times)))
+    print(np.mean(np.diff(times)))
     plt.figure()
     plt.plot(np.diff(times))
     plt.axhline(270, linestyle="--", color="red")
     plt.axhline(90+15, linestyle="--", color="blue")
     plt.yscale("log")
+    plt.xlabel("Index of observation", fontsize=16)
+    plt.ylabel(r"$\log( t_{i+1} - t_i ) [s]$", fontsize=16)
     plt.show()
 
     save_lc(lc)

@@ -256,10 +256,14 @@ def analyze_simulation(savename):
     input_lc, model, header = load_simulation_to_lc(savename)
     complete_PPP_analysis(input_lc, save_data=True, infos=f"{model}, simulated\n{header}", if_plot=False)
 
-def load_data_to_lc(savename):
+def load_data_to_lc(savename, multiplication_factor=1):
+    """
+    savename : name under which the object's lightcurve is saved
+    multiplication factor : factor by which to multiply the flux so the countrates are good
+    """
     data = np.loadtxt(f"data/transformed/{savename}.txt")
     times, noisy_countrates, dy, exposures = data[:,0], data[:,1], data[:,2], data[:,3]
-    input_lc = GappyLightcurve(times, noisy_countrates, dy, exposures=exposures)
+    input_lc = GappyLightcurve(times, noisy_countrates*multiplication_factor, dy*multiplication_factor, exposures=exposures)
     return input_lc
 
 def analyze_data(savename, save_models=False):

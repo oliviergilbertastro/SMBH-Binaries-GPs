@@ -54,6 +54,9 @@ if __name__ == "__main__":
     #plot_original(T_dist, T_obs)
     #plot_lognormal(T_dist, T_obs)
 
+    from scipy.stats import ks_2samp
+
+    print(ks_2samp(T_dist, T_dist2))
 
     plt.figure()
     plt.hist(T_dist, bins=10, color="red", label="90s exposures")
