@@ -19,7 +19,7 @@ def load_ASASSN_data(object_name):
     data = pd.read_csv(f"data/raw/{object_name}.csv", header=9)
     jd, flux, flux_error = data["JD"], data["Flux"], data["Flux Error"]
     times = (jd-jd[0])*86400 # Put the start time at 0 and convert to seconds
-    exposures = np.ones_like(jd)*270 # For ASAS-SN, each epoch consists of 3x90s exposures.
+    exposures = np.ones_like(jd)*90 # For ASAS-SN, each epoch consists of 3x90s exposures. Maybe it's only 90s??
 
     # Not quite sure if flux = count_rates (i.e. counts/s), uncertainties sure seem small though
     return (object_name, np.array([times, flux, flux_error, exposures]))
@@ -48,5 +48,14 @@ def save_lc(lc):
 if __name__ == "__main__":
     lc = load_ASASSN_data("mrk421")
     plot_lightcurve(lc, units="seconds")
+
+    times = lc[1][0]
+    print(np.diff(times))
+    plt.figure()
+    plt.plot(np.diff(times))
+    plt.axhline(270, linestyle="--", color="red")
+    plt.axhline(90+15, linestyle="--", color="blue")
+    plt.yscale("log")
     plt.show()
+
     save_lc(lc)

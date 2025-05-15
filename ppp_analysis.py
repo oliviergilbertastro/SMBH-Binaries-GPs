@@ -263,13 +263,13 @@ def load_data_to_lc(savename):
     return input_lc
 
 def analyze_data(savename):
-    input_lc = load_simulation_to_lc(savename)
+    input_lc = load_data_to_lc(savename)
     complete_PPP_analysis(input_lc, save_data=True, infos=f"{savename}, real\n", if_plot=True, units="seconds")
 
 if __name__ == "__main__":
 
     # Run MRK-421:
-
+    analyze_data("mrk421")
 
     if False:
         from simulate_lightcurves import *
