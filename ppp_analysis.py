@@ -325,14 +325,16 @@ def load_data_to_lc(savename, multiplication_factor=1):
     input_lc = GappyLightcurve(times, noisy_countrates*multiplication_factor, dy*multiplication_factor, exposures=exposures)
     return input_lc
 
-def analyze_data(savename, save_models=False, multiplication_factor=1):
-    input_lc = load_data_to_lc(savename, multiplication_factor=multiplication_factor)
-    complete_PPP_analysis(input_lc, save_data=True, infos=f"{savename}, real\n", if_plot=True, units="seconds", data_type="real", save_models=save_models)
+def analyze_data(savename, save_models=False):
+    input_lc = load_data_to_lc(savename, multiplication_factor=1) # Open it once to have the lightcurve
+    multiplication_factor = find_scale_factor(input_lc)
+    scaled_lc = load_data_to_lc(savename, multiplication_factor=multiplication_factor) # Open it again to have the scaled lightcurve
+    complete_PPP_analysis(scaled_lc, save_data=True, infos=f"{savename}, real\n", if_plot=True, units="seconds", data_type="real", save_models=save_models, multiplication_factor=multiplication_factor)
 
 if __name__ == "__main__":
 
     # Run MRK-421:
-    analyze_data("mrk421", save_models=False, multiplication_factor=100)
+    analyze_data("mrk421", save_models=True)
 
     if False:
         from simulate_lightcurves import *
