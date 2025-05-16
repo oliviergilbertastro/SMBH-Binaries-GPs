@@ -42,7 +42,7 @@ if False:
 
 if __name__ == "__main__":
     # Check the simulated lightcurves
-    FILETIME = "2025_05_16_12h26m37s"
+    FILETIME = "2025_05_16_14h12m46s"
     real_lc = load_lightcurve(FILETIME, data_type="real")
 
     print(find_scale_factor(real_lc))
@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     null_model, alt_model = load_models(FILETIME, data_type="real")
     print(cpus)
-    lcs = generate_lightcurves(null_model, Nsims=10)
+    lcs = generate_lightcurves(null_model, Nsims=1)
 
     for i in range(len(lcs)):
         #plot_lightcurve(lcs[i], title=f"Lightcurve #{i}", units="seconds")
@@ -79,4 +79,8 @@ if __name__ == "__main__":
         plt.xlabel("$y$")
         plt.ylabel("d$y$")
 
-        plt.show()
+    null_model_gen, null_kernel_gen = define_null_hypothesis(lcs[0], units="seconds")
+    plot_model_lc(lcs[0], model=null_model_gen, units="seconds")
+    alternative_model_gen, alternative_kernel_gen = define_alternative_model(lcs[0], units="seconds")
+    plot_model_lc(lcs[0], model=alternative_model_gen, units="seconds")
+    plt.show()

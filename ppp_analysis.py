@@ -153,10 +153,10 @@ def fit_lightcurves(lcs, null_kernel, alternative_kernel):
         # Run a small MCMC to make sure we find the global maximum of the likelihood
         # ideally we'd probably want to run more samples
         null_modelling = GPModelling(lc, null_kernel)
-        null_modelling.derive_posteriors(fit=True, cores=cpus, walkers=2 * cpus, max_steps=1000, progress=False)
+        null_modelling.derive_posteriors(fit=True, cores=cpus, walkers=2 * cpus, max_steps=2000, progress=False)
         likelihoods_null.append(null_modelling.max_loglikelihood)
         alternative_modelling = GPModelling(lc, alternative_kernel)                         
-        alternative_modelling.derive_posteriors(fit=True, cores=cpus, walkers=2 * cpus, max_steps=1000, 
+        alternative_modelling.derive_posteriors(fit=True, cores=cpus, walkers=2 * cpus, max_steps=5000, 
                                                 progress=False)
         likelihoods_alt.append(alternative_modelling.max_loglikelihood)
     print_color(f"Done fitting lightcurves!")

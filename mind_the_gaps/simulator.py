@@ -492,9 +492,9 @@ def downsample(lc, timestamps, bin_exposures):
         plt.show()
 
     # plot the lightcurve you're trying to downsample:
-    import matplotlib.pyplot as plt
-    plt.errorbar(lc.time, lc.counts, yerr=lc.counts_err, ls="None", marker=".")
-    plt.show()
+    #import matplotlib.pyplot as plt
+    #plt.errorbar(lc.time, lc.counts, yerr=lc.counts_err, ls="None", marker=".")
+    #plt.show()
 
     # return the lightcurve as it is
     if len(lc.time) == len(timestamps):
