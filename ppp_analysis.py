@@ -26,10 +26,12 @@ np.random.seed(10)
 
 
 def find_scale_factor(input_lc):
-    mean_y = copy.deepcopy(np.mean(input_lc.y))
-    mean_noise = copy.deepcopy(np.mean(input_lc.dy))
+    y = copy.deepcopy(input_lc.y)
+    dy = copy.deepcopy(input_lc.dy)
+    exposures = copy.deepcopy(input_lc.exposures)
+    mean_y_weighted = np.mean(y / exposures)
     def scale_func(scale):
-        return (np.sqrt(mean_y * scale) - mean_noise * scale)**2
+        return (np.sqrt(mean_y_weighted * scale) - np.mean(dy) * scale)**2
     res = minimize_scalar(scale_func, bounds=(1e-6, 100000), method='bounded')
     return res.x
 
@@ -48,12 +50,12 @@ def plot_lightcurve(input_lc, title=None, units="days"):
 
 
 # Define the null-hypothesis
-def define_null_hypothesis(input_lc, savefolder=None, units="days"):
-    bounds_drw = dict(log_a=(-10, 50), log_c=(-10, 10))
+def define_null_hypothesis(input_lc, savefolder=None, units="days", multiplication_factor=1):
+    bounds_drw = dict(log_a=(-10+np.log(multiplication_factor), 50+np.log(multiplication_factor)), log_c=(-10, 10))
     drw_variance_guess = np.var(input_lc.y)
-    drw_c_guess = 2*np.pi/30
+    drw_c_guess = 2*np.pi/30 # guess a period of 30 days
     if units == "seconds":
-        bounds_drw = dict(log_a=(-10, 50), log_c=(-21.37, -1.37)) # log_c bounds shifted accordingly to 86400 seconds/day factor
+        bounds_drw["log_c"]=(-21.37, -1.37) # log_c bounds shifted accordingly to 86400 seconds/day factor
         drw_c_guess /= 86400
     null_kernel = celerite.terms.RealTerm(log_a=np.log(drw_variance_guess), log_c=np.log(drw_c_guess), bounds=bounds_drw)
     null_model = GPModelling(input_lc, null_kernel)
@@ -77,7 +79,7 @@ def define_null_hypothesis(input_lc, savefolder=None, units="days"):
         plt.savefig(f"{savefolder}null_autocorr.png", dpi=100)
     return null_model, null_kernel
 
-def define_alternative_model(input_lc, savefolder=None, initial_guess={"P_qpo":50}, units="days"):
+def define_alternative_model(input_lc, savefolder=None, initial_guess={"P_qpo":50}, units="days", multiplication_factor=1):
     lc_variance = np.var(input_lc.y)
 
     def bounds_variance(variance, margin=15):
@@ -89,7 +91,7 @@ def define_alternative_model(input_lc, savefolder=None, initial_guess={"P_qpo":5
     # You can also use Lorentzian from models.celerite_models (which is defined in terms of variance, Q and omega)
 
     log_variance = np.log(lc_variance)
-    bounds_drw = dict(log_a=(-10, 50), log_c=(-10, 10))
+    bounds_drw = dict(log_a=(-10+np.log(multiplication_factor), 50+np.log(multiplication_factor)), log_c=(-10, 10))
     drw_c_guess = 2*np.pi/30
     Q_guess = 100
     P_qpo_guess = initial_guess["P_qpo"] # period of the QPO
@@ -100,7 +102,7 @@ def define_alternative_model(input_lc, savefolder=None, initial_guess={"P_qpo":5
     bounds_qpo = dict(log_S0=variance_bounds, log_Q=Q_bounds, log_omega0=bend_bounds)
     if units == "seconds":
         drw_c_guess /= 86400
-        bounds_drw = dict(log_a=(-10, 50), log_c=(-21.37, -1.37)) # log_c bounds shifted accordingly to 86400 seconds/day factor
+        bounds_drw["log_c"]=(-21.37, -1.37) # log_c bounds shifted accordingly to 86400 seconds/day factor
         w_qpo_guess /= 86400
 
 
@@ -252,11 +254,11 @@ def complete_PPP_analysis(input_lc, data_type="simulation", save_data=True, info
     plot_lightcurve(input_lc, units=units)
     if if_plot:
         plt.show()
-    null_model, null_kernel = define_null_hypothesis(input_lc, savefolder=savefolder, units=units)
+    null_model, null_kernel = define_null_hypothesis(input_lc, savefolder=savefolder, units=units, multiplication_factor=multiplication_factor)
     plot_model_lc(input_lc, model=null_model, savefolder=f"{savefolder}null_", units=units)
     if if_plot:
         plt.show()
-    alternative_model, alternative_kernel = define_alternative_model(input_lc, savefolder=savefolder, units=units)
+    alternative_model, alternative_kernel = define_alternative_model(input_lc, savefolder=savefolder, units=units, multiplication_factor=multiplication_factor)
     plot_model_lc(input_lc, model=alternative_model, savefolder=f"{savefolder}alt_", units=units)
     # Save the models:
     null_ICs = calculate_information_criterions(input_lc, null_model)

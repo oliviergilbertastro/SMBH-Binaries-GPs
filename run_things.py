@@ -42,12 +42,12 @@ if False:
 
 if __name__ == "__main__":
     # Check the simulated lightcurves
-    FILETIME = "2025_05_15_13h28m42s"
+    FILETIME = "2025_05_16_12h26m37s"
     real_lc = load_lightcurve(FILETIME, data_type="real")
 
     print(find_scale_factor(real_lc))
     
-    sys.exit()
+    #sys.exit()
 
     null_model, alt_model = load_models(FILETIME, data_type="real")
     print(cpus)
@@ -68,9 +68,15 @@ if __name__ == "__main__":
         print(f"Mean dy generated : {np.mean(lcs[i]._dy)}")
 
         print(f"Std y real : {np.std(real_lc._y)}")
-        print(f"Std y generated : {np.std(real_lc._y)}")
+        print(f"Std y generated : {np.std(lcs[i]._y)}")
 
         print(f"Std dy real : {np.std(real_lc._dy)}")
         print(f"Std dy generated : {np.std(lcs[i]._dy)}")
+
+        plt.figure()
+        plt.plot(lcs[i]._y, lcs[i]._dy, ls="None", marker=".", color="blue", label="generated")
+        plt.plot(real_lc._y, real_lc._dy, ls="None", marker=".", color="black", label="real")
+        plt.xlabel("$y$")
+        plt.ylabel("d$y$")
 
         plt.show()

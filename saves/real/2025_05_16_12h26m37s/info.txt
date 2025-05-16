@@ -1,0 +1,13 @@
+mrk421, real
+
+multiplication_factor = 1620.0296536498943
+null-model AICc = 15467.109025436486
+null-model AIC = 15467.093680167944
+null-model BIC = 15476.425047603509
+alt-model AICc = 15106.777040325445
+alt-model AIC = 15106.700018502595
+alt-model BIC = 15130.028437091507
+p-value compared to 100 lightcurves = 0.0
+p-value compared to fitted lognorm distribution = 0.06171793431484318
+n-sigmas of significance of QPO signal = 1.5405108971676928
+Observed T_LRT = 366.3936616653482
