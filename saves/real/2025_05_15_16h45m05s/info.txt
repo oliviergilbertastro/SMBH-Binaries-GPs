@@ -1,0 +1,6 @@
+mrk421, real
+
+p-value compared to 100 lightcurves = 0.0
+p-value compared to fitted lognorm distribution = 4.363176486776865e-14
+n-sigmas of significance of QPO signal = 7.458876231047633
+Observed T_LRT = 366.3562746846055
