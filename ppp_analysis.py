@@ -17,9 +17,21 @@ import celerite, corner
 from scipy.stats import percentileofscore
 from utils import print_color
 from fit_lognormal_TLRT import plot_lognormal
+from mind_the_gaps.stats import aicc, aic, bic
+import copy
+from scipy.optimize import minimize_scalar, minimize
 
 cpus = 10 # set the number of cores for parallelization
 np.random.seed(10)
+
+
+def find_scale_factor(input_lc):
+    mean_y = copy.deepcopy(np.mean(input_lc.y))
+    mean_noise = copy.deepcopy(np.mean(input_lc.dy))
+    def scale_func(scale):
+        return (np.sqrt(mean_y * scale) - mean_noise * scale)**2
+    res = minimize_scalar(scale_func, bounds=(1e-6, 100000), method='bounded')
+    return res.x
 
 
 def plot_lightcurve(input_lc, title=None, units="days"):
@@ -33,7 +45,6 @@ def plot_lightcurve(input_lc, title=None, units="days"):
     plt.ylabel("Rates (ct/s)")
     if title is not None:
         plt.title(title, fontsize=16)
-
 
 
 # Define the null-hypothesis
@@ -118,8 +129,14 @@ def define_alternative_model(input_lc, savefolder=None, initial_guess={"P_qpo":5
 
     return alternative_model, alternative_kernel
 
+def calculate_information_criterions(input_lc, model):
+    """Calculate the AICc, the AIC and the BIC for a given model"""
+    _aicc = aicc(model.max_loglikelihood, k=model.k, n=input_lc.n)
+    _aic = aic(model.max_loglikelihood, k=model.k)
+    _bic = bic(model.max_loglikelihood, k=model.k, n=input_lc.n)
+    return _aicc, _aic, _bic
+
 def generate_lightcurves(null_model, Nsims=100):
-    Nsims = 100 # typically 10,000
     lcs = null_model.generate_from_posteriors(Nsims, cpus=cpus)
     print_color(f"Done generating {Nsims} lightcurves!")
     return lcs
@@ -167,8 +184,35 @@ def T_LRT_dist(likelihoods_null, likelihoods_alt, null_model, alternative_model,
 
     return (1 - perc / 100), T_dist, T_obs
 
+def plot_model_lc(input_lc, model, savefolder=None, units="days", title=None):
+    print(model.max_parameters)
+    model.gp.set_parameter_vector(model.max_parameters)
+    times = copy.deepcopy(input_lc.times)
+    t = np.linspace(times[0], times[-1], 10000)
+    pred_mean, pred_var = model.gp.predict(input_lc.y, t=t, return_var=True)
 
-def complete_PPP_analysis(input_lc, data_type="simulation", save_data=True, infos=None, if_plot=True, save_models=False, units="days"):
+
+    # best-fit model
+    fig = plt.figure()
+    if units == "seconds":
+        t /= 86400
+        times /= 86400
+    plt.errorbar(times, input_lc.y, yerr=input_lc.dy, ls="None", marker=".", color="black")
+    plt.xlabel("Time (days)", fontsize=15)
+    plt.ylabel("Rates (ct/s)", fontsize=15)
+    plt.plot(t, pred_mean, label="Model", color="C1")
+    plt.fill_between(t, pred_mean - np.sqrt(pred_var), pred_mean + np.sqrt(pred_var), 
+                    zorder=10, color="C1", alpha=0.5)
+    if title is not None:
+        plt.title(title, fontsize=16)
+    plt.legend()
+    plt.plot()
+    if savefolder is not None:
+        plt.savefig(f"{savefolder}model.png", dpi=100)
+    return t, pred_mean, pred_var
+
+
+def complete_PPP_analysis(input_lc, data_type="simulation", save_data=True, infos=None, if_plot=True, save_models=False, units="days", multiplication_factor=1):
     """
     Make the full analysis of LRT distributions and save the important data under "saves/ppp/DD_MM_YYYY_TIME"
     input_lc : GappyLightCurve object of our data (or simulated data)
@@ -193,7 +237,7 @@ def complete_PPP_analysis(input_lc, data_type="simulation", save_data=True, info
         from datetime import datetime
         import os
         savefolder = f"saves/{data_type}/" + datetime.now().strftime('%Y_%m_%d_%Hh%Mm%Ss') + "/"
-        print_color(f"Files saved in {savefolder}")
+        print_color(f"Files will be saved in {savefolder}")
         if not os.path.exists(savefolder):
             os.makedirs(savefolder)
         else:
@@ -203,24 +247,39 @@ def complete_PPP_analysis(input_lc, data_type="simulation", save_data=True, info
         if infos is not None:
             with open(f"{savefolder}info.txt", "a") as f:
                 f.write(infos)
+                f.write(f"\nmultiplication_factor = {multiplication_factor}")
 
     plot_lightcurve(input_lc, units=units)
     if if_plot:
         plt.show()
     null_model, null_kernel = define_null_hypothesis(input_lc, savefolder=savefolder, units=units)
+    plot_model_lc(input_lc, model=null_model, savefolder=f"{savefolder}null_", units=units)
     if if_plot:
         plt.show()
     alternative_model, alternative_kernel = define_alternative_model(input_lc, savefolder=savefolder, units=units)
+    plot_model_lc(input_lc, model=alternative_model, savefolder=f"{savefolder}alt_", units=units)
     # Save the models:
-    if save_data and save_models:
-        with open(f'{savefolder}null_model.pkl', 'wb') as f:
-            pickle.dump(null_model, f)
-        with open(f'{savefolder}alt_model.pkl', 'wb') as f:
-            pickle.dump(alternative_model, f)
-        with open(f'{savefolder}null_kernel.pkl', 'wb') as f:
-            pickle.dump(null_kernel, f)
-        with open(f'{savefolder}alt_kernel.pkl', 'wb') as f:
-            pickle.dump(alternative_kernel, f)
+    null_ICs = calculate_information_criterions(input_lc, null_model)
+    alt_ICs = calculate_information_criterions(input_lc, alternative_model)
+    print(f"null-model ICs : {null_ICs}")
+    print(f"alternative-model ICs : {alt_ICs}")
+    if save_data:
+        with open(f"{savefolder}info.txt", "a") as f:
+                f.write(f"\nnull-model AICc = {null_ICs[0]}")
+                f.write(f"\nnull-model AIC = {null_ICs[1]}")
+                f.write(f"\nnull-model BIC = {null_ICs[2]}")
+                f.write(f"\nalt-model AICc = {alt_ICs[0]}")
+                f.write(f"\nalt-model AIC = {alt_ICs[1]}")
+                f.write(f"\nalt-model BIC = {alt_ICs[2]}")
+        if save_models:
+            with open(f'{savefolder}null_model.pkl', 'wb') as f:
+                pickle.dump(null_model, f)
+            with open(f'{savefolder}alt_model.pkl', 'wb') as f:
+                pickle.dump(alternative_model, f)
+            with open(f'{savefolder}null_kernel.pkl', 'wb') as f:
+                pickle.dump(null_kernel, f)
+            with open(f'{savefolder}alt_kernel.pkl', 'wb') as f:
+                pickle.dump(alternative_kernel, f)
     if if_plot:
         plt.show()
     lcs = generate_lightcurves(null_model, Nsims=100)

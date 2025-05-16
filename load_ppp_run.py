@@ -19,6 +19,16 @@ def load_T_LRT(filetime, data_type="simulation"):
     tlrt = np.loadtxt(f"saves/{data_type}/{filetime}/T_LRT.txt")
     return tlrt[:-1], tlrt[-1]
 
+def load_models(filetime, data_type="simulation"):
+    """returns null_model, alternative_model"""
+    try:
+        null_model = pickle.load(open(f"saves/{data_type}/{filetime}/null_model.pkl",'rb'))
+        alt_model = pickle.load(open(f"saves/{data_type}/{filetime}/alt_model.pkl",'rb'))
+    except:
+        raise ValueError("There are no models saved for this run!")
+    return null_model, alt_model
+
+
 def load_everything(filetime, data_type="simulation"):
     lc = load_lightcurve(filetime, data_type)
     null_likelihoods, alt_likelihoods = load_likelihoods(filetime, data_type)
